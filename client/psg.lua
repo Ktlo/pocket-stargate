@@ -103,6 +103,29 @@ end
 
 basalt.setVariable("selectSubFrame", selectSubFrame)
 
+local function listScroll(increment)
+    local offset = addressesList:getOffset()
+    if increment < 0 and offset <= 0 then
+        return
+    end
+    if increment > 0 and offset > #(addressesList:getAll()) - addressesList:getHeight() then
+        return
+    end
+    addressesList:setOffset(offset + increment)
+end
+
+local function listUp()
+    listScroll(-1)
+end
+
+basalt.setVariable("listUp", listUp)
+
+local function listDown()
+    listScroll(1)
+end
+
+basalt.setVariable("listDown", listDown)
+
 local function saveCall(f)
     local g = function(...)
         pcall(f, ...)

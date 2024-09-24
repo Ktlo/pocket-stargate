@@ -32,7 +32,9 @@ end
 
 shell.execute("wget", "run", "https://basalt.madefor.cc/install.lua", "packed", "basalt.lua", "v1.6.6")
 wget("common", "concurrent.lua")
-wget("client", "addresses.conf")
+if not fs.exists("addresses.conf") then
+    wget("client", "addresses.conf")
+end
 wget("client", "addresses.lua")
 wget("client", "stargate.lua")
 wget("client", "psg.lua")

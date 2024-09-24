@@ -29,7 +29,7 @@ local solarSystem = read(nil, nil, nil, "sgjourney:terra")
 
 local galaxies = {}
 
-print("Please, enter current galaxies names (empty input means end of list)")
+print("Please, enter names of galaxies where the stargate is located at (empty input means end of list)")
 while true do
     write("Name galaxy #"..tostring(#galaxies + 1)..": ")
     local galaxy = read(nil, nil, nil, #galaxies == 0 and "sgjourney:milky_way" or nil)
@@ -37,9 +37,13 @@ while true do
     table.insert(galaxies, galaxy)
 end
 
+print("Do you prefer manual dialing? (enter 'yes' if so)")
+local preferManual = read(nil, nil, nil, "no")
+
 print("Modifying configuration file...")
 settings.set("solarSystem", solarSystem)
 settings.set("galaxies", galaxies)
+settings.set("preferManual", preferManual == "yes" or preferManual == "y")
 settings.save()
 print("Configuration OK")
 
@@ -51,6 +55,7 @@ end
 
 wget("common", "concurrent.lua")
 wget("server", "startup.lua")
+wget("server", "alarm.dfpwm")
 
 print("Files downloaded!")
 print("Restarting...")
