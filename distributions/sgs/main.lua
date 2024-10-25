@@ -128,9 +128,17 @@ end
 
 local emptyJob = job.async(function()end)
 
-local irisProperty = concurrent.property(stargate.getIris())
-local irisDurabilityProperty = concurrent.property(stargate.getIrisDurability())
-local irisMaxDurabilityProperty = concurrent.property(stargate.getIrisMaxDurability())
+local function callOrDefault(method, default)
+    if method then
+        return method()
+    else
+        return default
+    end
+end
+
+local irisProperty = concurrent.property(callOrDefault(stargate.getIris, nil))
+local irisDurabilityProperty = concurrent.property(callOrDefault(stargate.getIrisDurability, 0))
+local irisMaxDurabilityProperty = concurrent.property(callOrDefault(stargate.getIrisMaxDurability, 0))
 local isStargateConnectedProperty = concurrent.property(stargate.isStargateConnected())
 local isStargateDialingOutProperty = concurrent.property(stargate.isStargateDialingOut())
 local isIncomingConnectionProperty = job.livedata.combine(function(isStargateConnected, isStargateDialingOut)
@@ -337,12 +345,6 @@ job.async(function()
         dialedAddressProperty:set({})
         connectedAddressProperty:set({})
         isDialingProperty:set(false)
-        job.async(function()
-            if stargate.isChevronOpen and stargate.isChevronOpen() then
-                stargate.closeChevron()
-                stargate.disconnectStargate()
-            end
-        end)
     end
 end)
 
@@ -354,7 +356,7 @@ end
 local otherside = {}
 
 function otherside.info(nonce)
-    return spkey.auth_request(nonce, { isIrisClosed = stargate.getIrisProgress() ~= 0 })
+    return spkey.auth_request(nonce, { isIrisClosed = stargate.getIrisProgress and stargate.getIrisProgress() ~= 0 })
 end
 
 local function saveAuditEvent(event, record)
@@ -828,40 +830,42 @@ job.livedata.subscribe(autoIrisProperty, function(value)
     settings.save()
 end)
 
-job.async(function()
-    while true do
-        os.pullEvent('iris_thud')
-        irisDurabilityProperty:set(irisDurabilityProperty.value - 1)
-    end
-end)
+if stargate.getIris then
+    job.async(function()
+        while true do
+            os.pullEvent('iris_thud')
+            irisDurabilityProperty:set(irisDurabilityProperty.value - 1)
+        end
+    end)
 
-job.async(function()
-    while true do
-        sleep(1)
-        irisProperty:set(stargate.getIris())
-        irisDurabilityProperty:set(stargate.getIrisDurability())
-        irisMaxDurabilityProperty:set(stargate.getIrisMaxDurability())
-    end
-end)
+    job.async(function()
+        while true do
+            sleep(1)
+            irisProperty:set(stargate.getIris())
+            irisDurabilityProperty:set(stargate.getIrisDurability())
+            irisMaxDurabilityProperty:set(stargate.getIrisMaxDurability())
+        end
+    end)
 
-job.livedata.subscribe(irisDurabilityProperty, function(durabiliy)
-    if durabiliy == 0 then
-        irisMaxDurabilityProperty:set(0)
-        irisProperty:set(nil)
-    end
-end)
+    job.livedata.subscribe(irisDurabilityProperty, function(durabiliy)
+        if durabiliy == 0 then
+            irisMaxDurabilityProperty:set(0)
+            irisProperty:set(nil)
+        end
+    end)
 
-local irisStateProperty = job.livedata.combine(function(iris, durability, maxDurability)
-    return {
-        iris = iris;
-        durability = durability;
-        maxDurability = maxDurability;
-    }
-end, irisProperty, irisDurabilityProperty, irisMaxDurabilityProperty)
+    local irisStateProperty = job.livedata.combine(function(iris, durability, maxDurability)
+        return {
+            iris = iris;
+            durability = durability;
+            maxDurability = maxDurability;
+        }
+    end, irisProperty, irisDurabilityProperty, irisMaxDurabilityProperty)
 
-job.livedata.subscribe(irisStateProperty, function(irisState)
-    broadcastSetting('iris', irisState)
-end)
+    job.livedata.subscribe(irisStateProperty, function(irisState)
+        broadcastSetting('iris', irisState)
+    end)
+end
 
 if not random.isInit() then
     random.initWithTiming()
