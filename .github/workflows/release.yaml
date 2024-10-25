@@ -15,11 +15,11 @@ jobs:
         with:
           python-version: '3.12'
       - name: Build SGS
-        run: python packer.py sgs "${{ github.sha }}"
+        run: python packer.py sgs "${{ github.event.release.tag_name }}"
       - name: Build PSG
-        run: python packer.py psg "${{ github.sha }}"
+        run: python packer.py psg "${{ github.event.release.tag_name }}"
       - name: Build SSG
-        run: python packer.py ssg "${{ github.sha }}"
+        run: python packer.py ssg "${{ github.event.release.tag_name }}"
       - name: Publish assets
         uses: softprops/action-gh-release@v2
         with:
