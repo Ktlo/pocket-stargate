@@ -149,12 +149,12 @@ local playAlarmTask = emptyJob
 job.livedata.subscribe(isIncomingConnectionProperty, function(isIncomingConnection)
     playAlarmTask:cancel()
     if isIncomingConnection then
-        if autoIrisProperty.value then
+        if autoIrisProperty.value and irisProperty.value then
             stargate.closeIris()
         end
         playAlarmTask = playSound("offworld.dfpwm")
     else
-        if autoIrisProperty.value then
+        if autoIrisProperty.value and irisProperty.value then
             stargate.openIris()
         end
     end
@@ -379,7 +379,7 @@ function otherside.auth(request)
     if enableAuditProperty.value then
         saveAuditEvent('auth', { key=key, error=(reason or "") })
     end
-    if result then
+    if result and irisProperty.value then
         stargate.openIris()
     end
     return result, reason
@@ -681,11 +681,15 @@ job.livedata.subscribe(enableAuditProperty, function(value)
 end)
 
 function security.openIris()
-    stargate.openIris()
+    if irisProperty.value then
+        stargate.openIris()
+    end
 end
 
 function security.closeIris()
-    stargate.closeIris()
+    if irisProperty.value then
+        stargate.closeIris()
+    end
 end
 
 function security.tail(skip, size)
