@@ -1,0 +1,33 @@
+name: Publish package to GitHub Packages
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build SGS
+        run: python packer.py sgs "${{ github.ref }}"
+      - name: Build PSG
+        run: python packer.py psg "${{ github.ref }}"
+      - name: Build SSG
+        run: python packer.py ssg "${{ github.ref }}"
+      - name: Publish assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            out/sgs.lua
+            out/install_sgs.lua
+            out/psg.lua
+            out/install_psg.lua
+            out/ssg.lua
+            out/install_ssg.lua

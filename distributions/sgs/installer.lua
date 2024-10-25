@@ -1,5 +1,5 @@
-local PREFIX = "https://raw.githubusercontent.com/Ktlo/pocket-stargate"
-local BRANCH = "develop"
+local GITHUBRAW = "https://raw.githubusercontent.com/Ktlo/pocket-stargate"
+local RELEASES = "https://github.com/Ktlo/pocket-stargate/releases/download"
 
 --------------------------------
 
@@ -12,14 +12,14 @@ local function typeY()
     end
 end
 
-print("Installing PSG server...")
+print("Installing SGS...")
 print("Checking peripherals...")
 if not (peripheral.find "advanced_crystal_interface" or peripheral.find "crystal_interface" or peripheral.find "basic_interface") then
     print("Stargate interface not found!")
     if typeY() then return end
 end
-if not peripheral.find("modem", function(_, modem) return modem.isWireless() end) then
-    print("Wireless modem not found!")
+if not peripheral.find("modem") then
+    print("Modem not found!")
     if typeY() then return end
 end
 print("Peripherals OK")
@@ -48,14 +48,14 @@ settings.save()
 print("Configuration OK")
 
 print("Downloading files...")
-local function wget(side, filename)
-    local fullUrl = PREFIX.."/"..BRANCH.."/"..side.."/"..filename
+local function wgetraw(distribution, filename)
+    local fullUrl = GITHUBRAW.."/"..BRANCH.."/distributions/"..distribution.."/"..filename
     shell.execute("wget", fullUrl, filename)
 end
 
-wget("common", "concurrent.lua")
-wget("server", "startup.lua")
-wget("server", "alarm.dfpwm")
+shell.execute("wget", RELEASES.."/"..BRANCH.."/sgs.lua", "startup.lua")
+wgetraw("sgs", "dialing.dfpwm")
+wgetraw("sgs", "offworld.dfpwm")
 
 print("Files downloaded!")
 print("Restarting...")
