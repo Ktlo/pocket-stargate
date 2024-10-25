@@ -27,7 +27,6 @@ local modem = peripheral.find("modem", function(_, modem) return not modem.isWir
 if not modem then
     error "No modem found; exiting..."
 end
-modem.closeAll() -- Modem does not close channels on computer restart
 modem = peripheral.getName(modem)
 
 local client = rpc.client_network(modem, SECURITY_COMMAND, TIMEOUT)
