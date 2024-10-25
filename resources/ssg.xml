@@ -40,15 +40,21 @@
             <label x="(parent.w-self.w)/2" y="2" text="General" fg="gray"/>
             <label x="2" y="3" text="Energy Target"/>
             <button x="21" y="3" width="5" height="1" text="SET" onClick="setEnergyTarget"/>
-            <label id="energyTarget" x="2" y="4" text="? FE" fg="blue"/>
-            <label x="2" y="6" text="Auto iris"/>
-            <button id="autoIris" x="21" y="6" width="1" height="1" fg="black" bg="white" text="" onClick="setAutoIris"/>
-            <label x="2" y="8" text="Iris state"/>
-            <button id="openIris" x="14" y="8" width="6" height="1" bg="green" text="OPEN" onClick="openIris"/>
-            <button id="closeIris" x="21" y="8" width="6" height="1" bg="red" text="CLOSE" onClick="closeIris"/>
-            <label x="2" y="10" text="Audit Enabled"/>
-            <button id="enableAudit" x="21" y="10" width="1" height="1" fg="black" bg="white" text="" onClick="setEnableAudit"/>
-            <frame id="advanced" y="12">
+            <label id="energyTarget" x="2" y="4" fg="blue"/>
+            <label x="2" y="6" text="Audit Enabled"/>
+            <button id="enableAudit" x="21" y="6" width="1" height="1" fg="black" bg="white" text="" onClick="setEnableAudit"/>
+            <frame id="iris" y="8" height="7">
+                <label x="(parent.w-self.w)/2" y="1" text="Iris" fg="gray"/>
+                <label id="iris" x="2" y="2" fg="blue" text="?"/>
+                <progressbar id="irisDurabilityBar" x="2" y="3" width="parent.w - 2" bg="red" progressColor="green"/>
+                <label id="irisDurability" x="(parent.w-self.w)/2" y="4" fg="blue" text="0/0"/>
+                <label x="2" y="5" text="Auto iris"/>
+                <button id="autoIris" x="21" y="5" width="1" height="1" fg="black" bg="white" text="" onClick="setAutoIris"/>
+                <label x="2" y="7" text="Iris state"/>
+                <button x="14" y="7" width="6" height="1" bg="green" text="OPEN" onClick="openIris"/>
+                <button x="21" y="7" width="6" height="1" bg="red" text="CLOSE" onClick="closeIris"/>
+            </frame>
+            <frame id="advanced" y="16">
                 <label x="(parent.w-self.w)/2" y="1" text="Advanced" fg="gray"/>
                 <label x="2" y="2" text="Network ID"/>
                 <button x="21" y="2" width="5" height="1" text="SET" onClick="setNetworkId"/>
