@@ -58,17 +58,20 @@ function addresses.extragalactic(galaxies)
     local result = {}
     for _, solar in ipairs(addressesTable.position or {}) do
         if solar.extragalactic then
+            local notSkip = true
             for _, galaxy in ipairs(galaxies) do
                 if solar.interstellar[galaxy] then
-                    goto skip
+                    notSkip = false
+                    break
                 end
             end
-            local record = {
-                name = solar.name or "?????",
-                address = solar.extragalactic
-            }
-            table.insert(result, record)
-            ::skip::
+            if notSkip then
+                local record = {
+                    name = solar.name or "?????",
+                    address = solar.extragalactic
+                }
+                table.insert(result, record)
+            end
         end
     end
     return result
