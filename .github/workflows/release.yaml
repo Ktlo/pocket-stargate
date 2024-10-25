@@ -8,19 +8,18 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      packages: write
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Build SGS
-        run: python packer.py sgs "${{ github.ref }}"
+        run: python packer.py sgs "${{ github.sha }}"
       - name: Build PSG
-        run: python packer.py psg "${{ github.ref }}"
+        run: python packer.py psg "${{ github.sha }}"
       - name: Build SSG
-        run: python packer.py ssg "${{ github.ref }}"
+        run: python packer.py ssg "${{ github.sha }}"
       - name: Publish assets
         uses: softprops/action-gh-release@v2
         with:
