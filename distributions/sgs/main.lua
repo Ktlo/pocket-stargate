@@ -435,15 +435,11 @@ local function encodeSymbol(symbol, slow)
         encodeSymbolManual(symbol, slow)
     elseif tier >= 2 then
         local engagedTarget = engagedChevronsProperty.value + 1
-        --job.running().task.pool:spawn(function()
-        --coroutine.wrap(function()
-            stargate.engageSymbol(symbol)
-        --end)()
-        --end):start()
+        stargate.engageSymbol(symbol)
         if slow then
             os.sleep(0.5)
-            engagedChevronsProperty:wait_until(function(value) return value == engagedTarget end)
         end
+        engagedChevronsProperty:wait_until(function(value) return value == engagedTarget end)
     elseif isMW then
         encodeSymbolManual(symbol, slow)
     end
