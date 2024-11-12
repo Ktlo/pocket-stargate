@@ -4,25 +4,26 @@ local rpc = {}
 
 ------------------------------------------------------
 
-local function prepareAnswer(id, result)
+local function prepareAnswer(server, id, result)
     return {
         magic = "rpc";
+        server = server;
         kind = 'response';
         id = id;
         result = result;
     }
 end
 
-local function prepareSuccess(id, ...)
-    return prepareAnswer(id, { status = 'success', value = table.pack(...) })
+local function prepareSuccess(server, id, ...)
+    return prepareAnswer(server, id, { status = 'success', value = table.pack(...) })
 end
 
-local function prepareError(id, error)
-    return prepareAnswer(id, { status = 'failure', error = error })
+local function prepareError(server, id, error)
+    return prepareAnswer(server, id, { status = 'failure', error = error })
 end
 
-local function processRequest(commands, message)
-    if type(message) == 'table' and message.magic == "rpc" and message.kind == 'request' then
+local function processRequest(commands, message, hostname)
+    if type(message) == 'table' and message.magic == "rpc" and message.kind == 'request' and (not hostname or message.server == hostname) then
         local mtype = message.type
         if mtype == 'help' then
             local help = {}
@@ -31,29 +32,29 @@ local function processRequest(commands, message)
                     help = command.help;
                 }
             end
-            return prepareSuccess(message.id, help)
+            return prepareSuccess(hostname, message.id, help)
         elseif mtype == 'call' then
             local command = commands[message.command]
             if command == nil then
-                return prepareError(message.id, "unknown remote procedure '"..message.command.."'")
+                return prepareError(hostname, message.id, "unknown remote procedure '"..message.command.."'")
             end
             local result = { pcall(command.procedure, table.unpack(message.arguments)) }
             if result[1] then
-                return prepareSuccess(message.id, table.unpack(result, 2))
+                return prepareSuccess(hostname, message.id, table.unpack(result, 2))
             else
-                return prepareError(message.id, result[2])
+                return prepareError(hostname, message.id, result[2])
             end
         else
-            return prepareError(message.id, "unsupported rpc request type '"..mtype.."'")
+            return prepareError(hostname, message.id, "unsupported rpc request type '"..mtype.."'")
         end
     end
 end
 
-function rpc.server(commands, handler)
+function rpc.server(commands, handler, hostname)
     return job.async(function()
         while true do
             handler(function(request)
-                return processRequest(commands, request)
+                return processRequest(commands, request, hostname)
             end)
         end
     end)
@@ -85,23 +86,27 @@ local function withListeningChannel(modem, channel, action)
     end)
 end
 
-function rpc.server_network(commands, modem, channel)
+function rpc.server_network(commands, modem, channel, hostname)
+    if type(modem) == 'table' then
+        modem = peripheral.getName(modem)
+    end
     return withListeningChannel(modem, channel, function()
         local process = function(f) modemServerHandlerTemplate(modem, channel, f) end
-        rpc.server(commands, process)
+        rpc.server(commands, process, hostname)
     end)
 end
 
 ------------------------------------------------------
 
 function rpc.is_response(request, response)
-    return type(response) == 'table' and response.magic == "rpc" and response.id == request.id and response.kind == 'response' and response.result
+    return type(response) == 'table' and response.magic == "rpc" and response.id == request.id and response.kind == 'response' and response.result and response.server == request.server
 end
 
 local function executeRemote(client, mtype, fill, ...)
     local id = math.random(100000000000)
     local request = {
         magic = "rpc";
+        server = client.server;
         id = id;
         kind = 'request';
         type = mtype;
@@ -152,11 +157,12 @@ function client_meta:__pairs()
     return next, executeRemoteHelp(rawget(self, '_state')), nil
 end
 
-function rpc.client(exchange, timeout)
+function rpc.client(exchange, timeout, hostname)
     local client = {
         _state = {
             exchange = exchange;
             timeout = timeout;
+            server = hostname;
         };
     }
     return setmetatable(client, client_meta)
@@ -185,10 +191,13 @@ local function exchangeNetworkTemplate(modem, serverChannel, request)
     return response
 end
 
-function rpc.client_network(modem, channel, timeout)
+function rpc.client_network(modem, channel, timeout, hostname)
+    if type(modem) == 'table' then
+        modem = peripheral.getName(modem)
+    end
     return rpc.client(function (request)
         return exchangeNetworkTemplate(modem, channel, request)
-    end, timeout)
+    end, timeout, hostname)
 end
 
 ------------------------------------------------------
@@ -208,6 +217,9 @@ local function networkBroadcastPushTemplate(modem, channel, message)
 end
 
 function rpc.broadcast_network(modem, channel, event)
+    if type(modem) == 'table' then
+        modem = peripheral.getName(modem)
+    end
     rpc.broadcast(function(message)
         return networkBroadcastPushTemplate(modem, channel, message)
     end, event)
@@ -233,6 +245,9 @@ local function networkSubscribePullTemplate(modem, channel)
 end
 
 function rpc.subscribe_network(modem, channel, action)
+    if type(modem) == 'table' then
+        modem = peripheral.getName(modem)
+    end
     return withListeningChannel(modem, channel, function()
         rpc.subscribe(function()
             return networkSubscribePullTemplate(modem, channel)
