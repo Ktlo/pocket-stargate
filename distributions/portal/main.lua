@@ -32,13 +32,16 @@ local cells = {}
 local availableCells = {}
 
 local function reloadCells()
-    for _, cell in ipairs(meBridge.listItems()) do
-        if cell.name:sub(1, 24) == "ae2:spatial_storage_cell" then
-            local fingerprint = cell.fingerprint
-            if not cells[fingerprint] then
-                print('new cell', fingerprint)
-                cells[fingerprint] = true
-                availableCells[fingerprint] = true
+    local newCells = meBridge.listItems()
+    if newCells then
+        for _, cell in ipairs(newCells) do
+            if cell.name:sub(1, 24) == "ae2:spatial_storage_cell" then
+                local fingerprint = cell.fingerprint
+                if not cells[fingerprint] then
+                    print('new cell', fingerprint)
+                    cells[fingerprint] = true
+                    availableCells[fingerprint] = true
+                end
             end
         end
     end
@@ -181,7 +184,7 @@ end)
 shared.initialize()
 print('gathered state')
 
-local thisPortal = assert(declareBucket:acquire(MY_NAME))
+local thisPortal = assert(declareBucket:try_acquire(MY_NAME))
 
 print('declared this portal')
 
@@ -192,6 +195,8 @@ job.async(function()
     end
 end):finnalize(function()
     thisPortal:release()
+    monitor.setBackgroundColor(colors.black)
+    monitor.clear()
 end)
 
 rpc.server_network(rpc.simple_commands(server), modem, CHANNEL, MY_NAME)
@@ -208,11 +213,11 @@ job.async(function()
 end)
 
 local function teleport(destination)
-    local source = portalBucket:acquire(MY_NAME)
+    local source = portalBucket:try_acquire(MY_NAME)
     if not source then
         return
     end
-    local target = portalBucket:acquire(destination)
+    local target = portalBucket:try_acquire(destination)
     if not target then
         source:release()
         return
@@ -227,7 +232,7 @@ local function teleport(destination)
             target:release()
             return
         end
-        cell = cellBucket:acquire(cellName)
+        cell = cellBucket:try_acquire(cellName)
         if cell then
             break
         end

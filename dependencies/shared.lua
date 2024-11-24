@@ -54,6 +54,7 @@ local function destroy_resource(bucket, name)
     resources[name] = nil
     resource.closed = true
     bucket:on_destroy(name)
+    os.queueEvent("shared_release", bucket.name, name)
 end
 
 function resource_index:release()
@@ -84,13 +85,29 @@ local function get_or_create_resource(self, name)
     return resource
 end
 
-function bucket_index:acquire(name)
+function bucket_index:try_acquire(name)
     exchange('acquire', self.name, name)
     local resources = self.resources
     if resources[name] then
         return nil, "resource is busy"
     end
     return get_or_create_resource(self, name)
+end
+
+function bucket_index:acquire(name)
+    local bucket = self.name
+    while true do
+        local resource = self:try_acquire(name)
+        if resource then
+            return resource
+        end
+        while true do
+            local _, buc, res = os.pullEvent("shared_release")
+            if bucket == buc and name == res then
+                break
+            end
+        end
+    end
 end
 
 local function event_handler(bucket, resource)end
@@ -158,7 +175,6 @@ function shared.push(event)
     local bucket = event.bucket
     local resource = event.resource
     if computer == myId then
-        print("WAS HERE")
         os.queueEvent("shared_exchange", action, bucket, resource)
         return
     end

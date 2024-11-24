@@ -417,12 +417,14 @@ function property_methods:collect(collector)
 end
 
 function property_methods:wait_until(condition)
-    if condition(self.value) then
-        return
+    local value = self.value
+    if condition(value) then
+        return value
     end
     while true do
-        if condition(wait_pattern(self)) then
-            return
+        value = wait_pattern(self)
+        if condition(value) then
+            return value
         end
     end
 end
