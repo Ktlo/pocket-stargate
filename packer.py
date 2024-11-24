@@ -12,7 +12,6 @@ args_parser = argparse.ArgumentParser(
 )
 
 args_parser.add_argument('distribution')
-args_parser.add_argument('branch')
 args = args_parser.parse_args()
 
 try:
@@ -21,7 +20,6 @@ except:
     pass
 
 distribution = args.distribution
-branch = args.branch
 
 @dataclasses.dataclass
 class Dependency:
@@ -49,17 +47,19 @@ dependencies = read_dependencies()
 
 base64_dependency = Dependency(path="dependencies/base64.lua", name="base64")
 
-def parse_resource(text):
-    return Dependency(path=f"resources/{text}", name=text)
+def parse_resource(text, type):
+    return Dependency(path=f"{type}/{text}", name=text)
 
-def read_resources():
-    with open(f"distributions/{distribution}/resources.txt") as file:
-        return [parse_resource(line.rstrip()) for line in file if line.strip() != '']
+def read_resources(type):
+    with open(f"distributions/{distribution}/{type}.txt") as file:
+        return [parse_resource(line.rstrip(), type) for line in file if line.strip() != '']
 
-resources = read_resources()
+resources = read_resources("resources")
 
-def load_entrypoint():
-    with open(f"distributions/{distribution}/main.lua", 'rb') as file:
+extras = read_resources("extras")
+
+def load_script(type):
+    with open(f"distributions/{distribution}/{type}.lua", 'rb') as file:
         return file.read()
 
 def load_dependency(dependency: Dependency):
@@ -71,9 +71,6 @@ def encode_text(text: bytes):
     return encoded.decode('utf-8')
 
 loader_text = """
-local function load_module(module, text)
-    return load(text, module..".lua", 't', _ENV)
-end
 local function loader(module)
     if module == 'base64' then
         return function() return base64 end
@@ -83,46 +80,84 @@ local function loader(module)
             return nil
         end
         modules[module] = nil
-        return load_module(module, base64.decode(text))
+        return load(text, module..".lua", 't', _ENV)
     end
 end
 table.insert(package.loaders, loader)
 """
 
-with open(f"out/{distribution}.lua", 'w') as file:
+def base64header(file):
     file.write("local base64 = [[")
     base64_lua = load_dependency(base64_dependency).decode('utf-8')
     file.write(base64_lua)
-    file.write("]]\n")
+    file.write("]]\nbase64 = load(base64, \"base64.lua\", 't', _ENV)()\n")
+
+def include_resources(file, resources):
+    for resource in resources:
+        file.write("    [\"")
+        file.write(resource.name)
+        file.write("\"] = base64.decode \"")
+        resource_text = load_dependency(resource)
+        encoded_resource = encode_text(resource_text)
+        file.write(encoded_resource)
+        file.write("\";\n")
+
+with open(f"out/{distribution}.lua", 'w') as file:
+    base64header(file)
     file.write("local modules = {\n")
     for dependency in dependencies:
         file.write("    [\"")
         file.write(dependency.name)
-        file.write("\"] = '")
+        file.write("\"] = base64.decode \"")
         dependency_text = load_dependency(dependency)
         encoded_dependency = encode_text(dependency_text)
         file.write(encoded_dependency)
-        file.write("';\n")
+        file.write("\";\n")
     file.write('}')
     file.write(loader_text)
-    file.write("base64 = load_module('base64', base64)()\n")
     file.write("_G.RESOURCES = {\n")
-    for resource in resources:
-        file.write("    [\"")
-        file.write(resource.name)
-        file.write("\"] = base64.decode '")
-        resource_text = load_dependency(resource)
-        encoded_resource = encode_text(resource_text)
-        file.write(encoded_resource)
-        file.write("';\n")
-    file.write('}')
-    file.write("local entrypoint = '")
-    file.write(encode_text(load_entrypoint()))
-    file.write("'\n")
-    file.write(f"entrypoint = load_module('{distribution}', base64.decode(entrypoint))\n")
-    file.write('return entrypoint(...)\n')
+    include_resources(file, resources)
+    file.write("}\n")
+    file.write("local entrypoint = \"")
+    file.write(encode_text(load_script("main")))
+    file.write("\"\n")
+    file.write(f"return load(base64.decode(entrypoint), \"{distribution}.lua\", 't', _ENV)(...)\n")
 
-with open(f"out/install_{distribution}.lua", 'wb') as output:
-    output.write(bytes(f"local BRANCH = '{branch}'\n", 'utf-8'))
-    with open(f"distributions/{distribution}/installer.lua", 'rb') as input:
-        output.write(input.read())
+installer_functions_text = f"""
+function saveExtra(resource, filename)
+    filename = filename or resource
+    local file = assert(io.open(filename, 'w'))
+    file:write(EXTRAS[resource])
+    file:close()
+end
+function saveProgram(filename)
+    filename = filename or "{distribution}.lua"
+    local file = assert(io.open(filename, 'w'))
+    file:write(PROGRAM)
+    file:close()
+end
+function typeY()
+    write("Do you want to continue? (Type Y for continue): ")
+    local read = read(nil, nil, nil, "N")
+    if read ~= 'Y' then
+        print("Exiting...")
+        error("Terminated", 0)
+    end
+end
+"""
+
+with open(f"out/install_{distribution}.lua", 'w') as file:
+    base64header(file)
+    file.write(installer_functions_text)
+    file.write("EXTRAS = {\n")
+    include_resources(file, extras)
+    file.write("}\n")
+    file.write("PROGRAM = base64.decode \"")
+    dependency_text = load_dependency(Dependency(f"out/{distribution}.lua", distribution))
+    encoded_dependency = encode_text(dependency_text)
+    file.write(encoded_dependency)
+    file.write("\"\n")
+    file.write("local entrypoint = base64.decode \"")
+    file.write(encode_text(load_script("installer")))
+    file.write("\"\n")
+    file.write("return load(entrypoint, \"installer.lua\", 't', _ENV)(...)\n")

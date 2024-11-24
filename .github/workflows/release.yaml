@@ -15,11 +15,15 @@ jobs:
         with:
           python-version: '3.12'
       - name: Build SGS
-        run: python packer.py sgs "${{ github.event.release.tag_name }}"
+        run: python packer.py sgs
       - name: Build PSG
-        run: python packer.py psg "${{ github.event.release.tag_name }}"
+        run: python packer.py psg
       - name: Build SSG
-        run: python packer.py ssg "${{ github.event.release.tag_name }}"
+        run: python packer.py ssg
+      - name: Build TSG
+        run: python packer.py tsg
+      - name: Build ME portal
+        run: python packer.py portal
       - name: Publish assets
         uses: softprops/action-gh-release@v2
         with:
@@ -30,3 +34,7 @@ jobs:
             out/install_psg.lua
             out/ssg.lua
             out/install_ssg.lua
+            out/tsg.lua
+            out/install_tsg.lua
+            out/portal.lua
+            out/install_portal.lua

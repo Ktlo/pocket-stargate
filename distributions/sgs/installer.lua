@@ -1,26 +1,12 @@
-local GITHUBRAW = "https://raw.githubusercontent.com/Ktlo/pocket-stargate"
-local RELEASES = "https://github.com/Ktlo/pocket-stargate/releases/download"
-
---------------------------------
-
-local function typeY()
-    write("Do you want to continue? (Type Y for continue): ")
-    local read = read(nil, nil, nil, "N")
-    if read ~= 'Y' then
-        print("Exiting...")
-        return true
-    end
-end
-
 print("Installing SGS...")
 print("Checking peripherals...")
 if not (peripheral.find "advanced_crystal_interface" or peripheral.find "crystal_interface" or peripheral.find "basic_interface") then
     print("Stargate interface not found!")
-    if typeY() then return end
+    typeY()
 end
 if not peripheral.find("modem") then
     print("Modem not found!")
-    if typeY() then return end
+    typeY()
 end
 print("Peripherals OK")
 
@@ -47,17 +33,12 @@ settings.set("preferManual", preferManual == "yes" or preferManual == "y")
 settings.save()
 print("Configuration OK")
 
-print("Downloading files...")
-local function wgetraw(distribution, filename)
-    local fullUrl = GITHUBRAW.."/"..BRANCH.."/distributions/"..distribution.."/"..filename
-    shell.execute("wget", fullUrl, filename)
-end
+print("Unpacking files...")
+saveExtra("dialing.dfpwm")
+saveExtra("offworld.dfpwm")
+saveProgram("startup.lua")
 
-shell.execute("wget", RELEASES.."/"..BRANCH.."/sgs.lua", "startup.lua")
-wgetraw("sgs", "dialing.dfpwm")
-wgetraw("sgs", "offworld.dfpwm")
-
-print("Files downloaded!")
+print("Files unpacked!")
 print("Restarting...")
 
 shell.execute 'reboot'

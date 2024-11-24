@@ -300,7 +300,6 @@ job.livedata.subscribe(redrawProperty, function(doRedraw)
                 flipColor = not flipColor
                 if columnOffset == COLUMNS then
                     columnOffset = 0
-                    flipColor = not flipColor
                     rowOffset = rowOffset + 1
                 end
             end

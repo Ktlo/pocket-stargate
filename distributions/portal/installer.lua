@@ -1,39 +1,38 @@
-local RELEASES = "https://github.com/Ktlo/pocket-stargate/releases/download"
-
---------------------------------
-
-local function typeY()
-    write("Do you want to continue? (Type Y for continue): ")
-    local read = read(nil, nil, nil, "N")
-    if read ~= 'Y' then
-        print("Exiting...")
-        return true
-    end
-end
-
 print("Installing ME portal...")
+
 print("Checking peripherals...")
 if not peripheral.find("modem", function(_, modem) return not peripheral.hasType(modem, "peripheral_hub") end) then
     print("Ender modem not found!")
-    if typeY() then return end
+    typeY()
 end
 if not peripheral.find("monitor") then
     print("Monitor not found!")
-    if typeY() then return end
+    typeY()
 end
 if not peripheral.find("meBridge") then
     print("meBridge not found!")
-    if typeY() then return end
+    typeY()
 end
 if not peripheral.find("ae2:spatial_io_port") then
     print("Spatial IO port not found!")
-    if typeY() then return end
+    typeY()
 end
 print("Peripherals OK")
 
-print("Downloading files...")
-shell.execute("wget", RELEASES.."/"..BRANCH.."/portal.lua", "portal.lua")
+write("Specify portal name: ")
+local name = read()
 
-print("Files downloaded!")
+print("Unpacking files...")
+saveProgram()
+print("Files unpacked!")
 
-print("Execute \"portal\" command in order to run ME portal.")
+if name then
+    print("Prepearing startup script...")
+    local file = assert(io.open("startup.lua", "w"))
+    file:write("shell.run \"portal ")
+    file:write(name)
+    file:write(" 3\"\n")
+    file:close()
+    print("DONE! Rebooting...")
+    shell.execute 'reboot'
+end
