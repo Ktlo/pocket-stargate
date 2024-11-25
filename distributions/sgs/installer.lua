@@ -11,20 +11,22 @@ end
 print("Peripherals OK")
 
 write("Name current solar system: ")
-local solarSystem = read(nil, nil, nil, "sgjourney:terra")
+local solarSystem = read(nil, nil, nil, settings.get("solarSystem", "sgjourney:terra"))
 
+local oldGalaxies = settings.get("galaxies", {"sgjourney:milky_way"})
 local galaxies = {}
 
 print("Please, enter names of galaxies where the stargate is located at (empty input means end of list)")
 while true do
-    write("Name galaxy #"..tostring(#galaxies + 1)..": ")
-    local galaxy = read(nil, nil, nil, #galaxies == 0 and "sgjourney:milky_way" or nil)
+    local n = #galaxies + 1
+    write("Name galaxy #"..n..": ")
+    local galaxy = read(nil, nil, nil, oldGalaxies[n])
     if galaxy == "" then break end
     table.insert(galaxies, galaxy)
 end
 
 print("Do you prefer manual dialing? (enter 'yes' if so)")
-local preferManual = read(nil, nil, nil, "no")
+local preferManual = read(nil, nil, nil, settings.get("preferManual", false) and "yes" or "no")
 
 print("Modifying configuration file...")
 settings.set("solarSystem", solarSystem)

@@ -6,8 +6,15 @@ if not peripheral.find("modem") then
 end
 print("Peripherals OK")
 
+print("Specify an URL that points to addresses file: ")
+
+local DEFAULT_LOCATION = "file:addresses.conf"
+local addressesLocation = read(nil, nil, nil, settings.get("psg.addressesLocation", DEFAULT_LOCATION))
+
+settings.set("psg.addressesLocation", addressesLocation)
+
 print("Unpacking files...")
-if not fs.exists("addresses.conf") then
+if not fs.exists("addresses.conf") and DEFAULT_LOCATION == addressesLocation then
     saveExtra("addresses.conf")
 end
 saveProgram()

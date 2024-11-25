@@ -77,7 +77,7 @@ local function loader(module)
     else
         local text = modules[module]
         if not text then
-            return nil
+            return nil, "not embedded in program"
         end
         modules[module] = nil
         return load(text, module..".lua", 't', _ENV)
@@ -102,7 +102,7 @@ def include_resources(file, resources):
         file.write(encoded_resource)
         file.write("\";\n")
 
-with open(f"out/{distribution}.lua", 'w') as file:
+with open(f"out/{distribution}.lua", 'w', newline='') as file:
     base64header(file)
     file.write("local modules = {\n")
     for dependency in dependencies:
@@ -146,17 +146,16 @@ function typeY()
 end
 """
 
-with open(f"out/install_{distribution}.lua", 'w') as file:
+with open(f"out/install_{distribution}.lua", 'w', newline='') as file:
     base64header(file)
     file.write(installer_functions_text)
     file.write("EXTRAS = {\n")
     include_resources(file, extras)
     file.write("}\n")
-    file.write("PROGRAM = base64.decode \"")
+    file.write("PROGRAM = ([[")
     dependency_text = load_dependency(Dependency(f"out/{distribution}.lua", distribution))
-    encoded_dependency = encode_text(dependency_text)
-    file.write(encoded_dependency)
-    file.write("\"\n")
+    file.write(dependency_text.decode('utf-8').replace("[[", "<$<").replace("]]", ">$>"))
+    file.write("]]):gsub(\"<$<\", \"[[\"):gsub(\">$>\", \"]]\")\n")
     file.write("local entrypoint = base64.decode \"")
     file.write(encode_text(load_script("installer")))
     file.write("\"\n")

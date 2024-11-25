@@ -84,7 +84,7 @@ settings.define("enableAudit", {
 
 local galaxies = settings.get("galaxies", {"sgjourney:milky_way"})
 
-local solarSystem = settings.get("solarSystem", "minecraft:overworld")
+local solarSystem = settings.get("solarSystem", "sgjourney:terra")
 
 local preferManual = settings.get("preferManual", false)
 local autoIrisProperty = concurrent.property(settings.get("autoIris", true))
