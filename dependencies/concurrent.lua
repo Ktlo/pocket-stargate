@@ -1,3 +1,13 @@
+local function removeFromList(list, element)
+    for i=1, #list do
+        if element == list[i] then
+            table.remove(list, i)
+            return true
+        end
+    end
+    return false
+end
+
 local concurrent = {}
 
 local immediately = { 'immediate' }
@@ -7,7 +17,7 @@ local function wait_pattern(object)
     local context = selector.enter(object)
     if not selector.condition(object, context, immediately) then
         repeat
-            local event = { os.pullEvent() }
+            local event = table.pack(os.pullEvent())
         until selector.condition(object, context, event)
     end
     return selector.leave(object, context, true)
@@ -37,7 +47,7 @@ function concurrent.select(...)
     end
     if not selected then
         repeat
-            local event = { os.pullEvent() }
+            local event = table.pack(os.pullEvent())
             for i=1, n do
                 local object = objects[i]
                 local selector = selectors[i]
@@ -55,7 +65,7 @@ function concurrent.select(...)
         local selector = selectors[i]
         local context = contexts[i]
         if i == selected then
-            result = { selector.leave(object, context, true) }
+            result = table.pack(selector.leave(object, context, true))
         else
             selector.leave(object, context, false)
         end
@@ -85,13 +95,8 @@ end
 
 function notify_methods._selector.leave(self, consumerId, selected)
     if not selected then
-        for i, id in ipairs(self.consumers) do
-            if consumerId == id then
-                table.remove(self.consumers, i)
-                return
-            end
-        end
-        error("unreachable")
+        removeFromList(self.consumers, consumerId)
+        -- assert deleted
     end
 end
 
@@ -202,12 +207,12 @@ mutex_methods.lock = wait_pattern
 
 function mutex_methods:with_lock(action)
     self:lock()
-    local result = { pcall(action) }
+    local result = table.pack(pcall(action))
     self:unlock()
     if result[1] then
         return table.unpack(result, 2)
     else
-        error(result[2])
+        error(result[2], 0)
     end
 end
 
@@ -300,7 +305,7 @@ end
 future_methods._selector = {}
 
 function future_methods._selector.enter(self)
-    return with_notify_selector_enter(self.collapsed, self)
+    return with_notify_selector_enter(self.status ~= 'idle', self)
 end
 
 future_methods._selector.condition = with_notify_selector_condition
@@ -322,29 +327,39 @@ end
 future_methods.wait = wait_pattern
 
 function future_methods:get()
-    local result = { self:wait() }
+    local result = table.pack(self:wait())
     if result[1] then
         return table.unpack(result, 2)
     else
-        error("error from future: "..tostring(result[2]), 2)
+        error(result[2], 2)
+    end
+end
+
+local function checkFutureIdle(self)
+    if self.status ~= 'idle' then
+        error("the value for future is already submitted", 3)
     end
 end
 
 function future_methods:submit(...)
-    if self.collapsed then
-        error("the value for future is already submitted", 2)
-    end
-    self.collapsed = true
-    self.value = { ... }
+    checkFutureIdle(self)
+    self.status = 'success'
+    self.value = table.pack(...)
     self.notify:wake_all()
 end
 
 function future_methods:failure(err)
-    if self.collapsed then
-        error("the value for future is already submitted", 2)
-    end
-    self.collapsed = true
+    checkFutureIdle(self)
+    self.status = 'fail'
     self.error = err
+    self.notify:wake_all()
+end
+
+function future_methods:from(future)
+    checkFutureIdle(self)
+    self.status = future.status
+    self.error = future.error
+    self.value = future.value
     self.notify:wake_all()
 end
 
@@ -354,7 +369,7 @@ local future_meta = {
 
 function concurrent.future()
     local future = {
-        collapsed = false;
+        status = 'idle';
         notify = concurrent.notify();
     }
     return setmetatable(future, future_meta)
@@ -362,204 +377,68 @@ end
 
 ----------------------------------------------------
 
-local task_methods = {}
+local property_methods = {}
 
-task_methods._selector = {}
+property_methods._selector = {}
 
-function task_methods._selector.enter(self)
-    local result = self.result
-    return result._selector.enter(result)
+function property_methods._selector.enter(self)
+    local notify = self.notify
+    return { self.value, notify._selector.enter(notify) }
 end
 
-function task_methods._selector.condition(self, context, event)
-    local result = self.result
-    return result._selector.condition(result, context, event)
+function property_methods._selector.condition(self, context, event)
+    local old_value, notify_context = table.unpack(context)
+    local notify = self.notify
+    return notify._selector.condition(notify, notify_context, event)
 end
 
-function task_methods._selector.leave(self, context, selected)
-    local result = self.result
-    return result._selector.leave(result, context, selected)
-end
-
-task_methods.wait = wait_pattern
-
-function task_methods:get()
-    return self.result:get()
-end
-
-function task_methods:isStarted()
-    return self.started
-end
-
-function task_methods:isAlive()
-    return not self.result.collapsed
-end
-
-function task_methods:isFailed()
-    return not not self.result.error
-end
-
-function task_methods:isFinished()
-    return self.result.collapsed and not self.result.error
-end
-
-local function task_handle(self, ...)
-    if not self:isAlive() then
-        return
-    end
-    local routine = self.coroutine
-    local prev_task = _TASK
-    _G._TASK = self
-    local result = { coroutine.resume(routine, ...) }
-    _G._TASK = prev_task
-    if not result[1] then
-        self.result:failure(result[2])
-    elseif coroutine.status(routine) == 'dead' then
-        self.result:submit(table.unpack(result, 2))
-    else
-        self.event = result[2]
+function property_methods._selector.leave(self, context, selected)
+    local _, notify_context = table.unpack(context)
+    with_notify_selector_leave(self, notify_context, selected)
+    if selected then
+        return self.value
     end
 end
 
-local function task_resume(self, ...)
-    if not self:isStarted() then
-        task_handle(self)
-        self.started = true
-    end
-    local event = ...
-    if self:isAlive() and (event == 'terminate' or (not self.event) or self.event == event) then
-        task_handle(self, ...)
+function property_methods:set(value)
+    if self.value ~= value then
+        self.value = value
+        self.notify:wake_all()
     end
 end
 
-local task_resume_children
-local task_resume_subtree
+function property_methods:collect(collector)
+    collector(self.value)
+    while true do
+        -- self.notify:wait()
+        -- collector(self.value)
+        collector(wait_pattern(self))
+    end
+end
 
-task_resume_children = function(self, ...)
-    local filtered = {}
-    for _, child in ipairs(self.children) do
-        task_resume_subtree(child, ...)
-        if child:isAlive() then
-            table.insert(filtered, child)
+function property_methods:wait_until(condition)
+    local value = self.value
+    if condition(value) then
+        return value
+    end
+    while true do
+        value = wait_pattern(self)
+        if condition(value) then
+            return value
         end
     end
-    self.children = filtered
 end
 
-task_resume_subtree = function(self, ...)
-    task_resume_children(self, ...)
-    task_resume(self, ...)
-end
-
-function task_methods:cancel_children()
-    task_resume_children(self, 'terminate')
-    error("Terminated", 0)
-end
-
-function task_methods:cancel()
-    if coroutine.status(self.coroutine) == "running" then
-        task_resume_children(self, 'terminate')
-        error("Terminated", 0)
-    else
-        task_resume_subtree(self, 'terminate')
-    end
-end
-
-function task_methods:async(action)
-    local child = self:fork(action)
-    task_resume_subtree(child)
-    return child
-end
-
-local function while_condition(task)
-    local children = task.children
-    if #children == 0 then
-        return false
-    end
-    for _, child in ipairs(children) do
-        if child:isAlive() then
-            return true
-        end
-    end
-    return false
-end
-
-local function task_scope_run(task)
-    local event
-    repeat
-        event = { os.pullEventRaw() }
-        task_resume_subtree(task, table.unpack(event))
-    until not task:isAlive()
-    while while_condition(task) do
-        event = { os.pullEventRaw() }
-        task_resume_children(task, table.unpack(event))
-    end
-    return task:get()
-end
-
-function task_methods:scope(action)
-    local child = self:fork(action)
-    return task_scope_run(child)
-end
-
-local task_meta = {
-    __index = task_methods;
+local property_meta = {
+    __index = property_methods;
 }
 
-local function task_create(action)
-    local task = {
-        result = concurrent.future();
-        parent = nil;
-        started = false;
-        children = {};
-        coroutine = coroutine.create(action);
-        event = nil;
+function concurrent.property(init)
+    local property = {
+        value = init;
+        notify = concurrent.notify();
     }
-    return setmetatable(task, task_meta)
-end
-
-function task_methods:fork(action)
-    local task = task_create(action)
-    task.parent = self
-    table.insert(self.children, task)
-    return task
-end
-
-concurrent.task = {}
-
-function concurrent.task.cancel()
-    local task = _TASK
-    if task then
-        task:cancel()
-    else
-        error("Terminated", 0)
-    end
-end
-
-function concurrent.task.async(action)
-    local task = _TASK
-    if not task then
-        error("no task in current context", 2)
-    end
-    return task:async(action)
-end
-
-function concurrent.task.run(action)
-    local task = _TASK
-    if task then
-        return task:scope(action)
-    else
-        local root = task_create(action)
-        return task_scope_run(root)
-    end
-end
-
-function concurrent.task.any(...)
-    local result = { concurrent.select(...) }
-    for _, task in ipairs({...}) do
-        task:cancel()
-    end
-    return table.unpack(result)
+    return setmetatable(property, property_meta)
 end
 
 ----------------------------------------------------
