@@ -12,16 +12,18 @@
                 <item text="Galactic"/>
                 <item text="Direct"/>
             </menubar>
-            <list id="addresses" x="addressType.x" y="addressType.y + addressType.h" width="addressType.w - 2" height="parent.h - 7"/>
-            <button id="up" x="addresses.x + addresses.w" y="addresses.y" width="2" height="1" text="/\" onClick="listUp"/>
-            <button id="down" x="addresses.x + addresses.w" y="addresses.y + addresses.h - 1" width="2" height="1" text="\/" onClick="listDown"/>
-            <pane x="up.x" y="up.y + up.h" width="2" height="down.y - up.y" bg="black"/>
-            <checkbox id="fast" x="2" y="addresses.y + addresses.h + 2" bg="cyan"/>
+            <list id="list" x="addressType.x" y="addressType.y + addressType.h" width="addressType.w - 1" height="parent.h - 7"/>
+            <button id="up" x="list.x + list.w" y="list.y" width="1" height="1" text="" onClick="scrollUp"/>
+            <button id="down" x="list.x + list.w" y="list.y + list.h - 1" width="1" height="1" text="" onClick="scrollDown"/>
+            <pane id="scroller" x="up.x" y="up.y + up.h" width="1" height="down.y - up.y" bg="black"/>
+            <checkbox id="fast" x="2" y="list.y + list.h + 2" bg="cyan" onChange="onFast"/>
             <label x="fast.x + fast.w + 1" y="fast.y" text="Fast"/>
-            <button id="dial" x="addresses.x + addresses.w / 2 - self.w/2 + 3" y="addresses.y + addresses.h + 1" text="Dial" onClick="dial"/>
+            <button id="dial" x="list.x + list.w / 2 - self.w/2" y="list.y + list.h + 1" width="10" text="Dial" onClick="dial"/>
+            <button id="vault" x="dial.x + dial.w + 1" y="list.y + list.h + 1" width="6" text="Keys" onClick="openVault"/>
         </frame>
         <frame id="dhd" y="2" height="parent.h - 1" visible="false">
             <pane id="dialPane" x="2" y="2" width="parent.w - 2" height="3" bg="cyan"/>
+            <label id="name" x="(parent.w - self.w)/2" y="dialPane.y" text=""/>
             <label id="dialAddress" x="(parent.w - self.w)/2" y="dialPane.y + 1" text=""/>
             <label id="bufferAddress" x="dialAddress.x + dialAddress.w" y="dialPane.y + 1" fg="yellow" text=""/>
             <button x="parent.w/2 - 11" y="dialPane.y + dialPane.h + 1" width="2" height="1" text="1" onClick="engage"/>
@@ -72,23 +74,18 @@
                 <item text="Status"/>
             </menubar>
             <frame id="general" y="2" height="parent.h - 1">
-                <label id="localAddressLabel" x="2" y="1" text="Local Address"/>
+                <label id="localAddressLabel" x="2" y="2" text="Local Address"/>
                 <label id="localAddress" x="2" y="localAddressLabel.y + 1" width="parent.w - 2" bg="cyan" text="N/A"/>
                 <label id="generationLabel" x="2" y="localAddress.y + 2" text="Generation"/>
                 <label id="generation" x="generationLabel.x + generationLabel.w + 1" y="generationLabel.y" text="N/A" fg="blue"/>
-                <label x="generation.x + generation.w + 2" y="generationLabel.y" text="Type"/>
-                <label id="type" x="2" y="5" width="parent.w - 2" bg="cyan" text="N/A"/>
-                <label id="netIdLabel" x="2" y="7" text="Network ID"/>
-                <label id="networkId" x="netIdLabel.x + netIdLabel.w + 1" y="7" text="N/A" fg="blue"/>
-                <label id="netResLabel" x="2" y="9" text="Network Restricted"/>
-                <checkbox id="networkRestricted" x="netResLabel.x + netResLabel.w + 1" y="9" bg="cyan" onClick="restrictNetwork"/>
-                <label id="resFedCodeLabel" x="2" y="11" text="Recent Feedback Code"/>
-                <label id="feedbackCode" x="resFedCodeLabel.x + resFedCodeLabel.w + 1" y="11" text="N/A" fg="blue"/>
-                <label x="2" y="13" text="Recent Feedback Message"/>
-                <label id="feedbackMessage" x="2" y="14" width="parent.w - 2" bg="cyan" text="N/A"/>
-                <label x="(parent.w - self.w)/2" y="16" fg="gray" text="Set Network Id"/>
-                <input id="newNetworkId" x="2" y="17" width="16" type="number"/>
-                <button x="newNetworkId.x + newNetworkId.w + 1" y="newNetworkId.y" width="parent.w - newNetworkId.x - newNetworkId.w - 1" height="1" text="Set" onClick="setNetwork"/>
+                <label id="typeLabel" x="2" y="generation.y + 2" text="Type"/>
+                <label id="type" x="2" y="typeLabel.y + 1" width="parent.w - 2" bg="cyan" text="N/A"/>
+                <label id="variantLabel" x="2" y="type.y + 2" text="Variant"/>
+                <label id="variant" x="2" y="variantLabel.y + 1" width="parent.w - 2" bg="cyan" text="N/A"/>
+                <label id="resFedCodeLabel" x="2" y="variant.y + 2" text="Recent Feedback Code"/>
+                <label id="feedbackCode" x="resFedCodeLabel.x + resFedCodeLabel.w + 1" y="resFedCodeLabel.y" text="N/A" fg="blue"/>
+                <label id="resFedMsgLabel" x="2" y="feedbackCode.y + 2" text="Recent Feedback Message"/>
+                <label id="feedbackMessage" x="2" y="resFedMsgLabel.y + 1" width="parent.w - 2" bg="cyan" text="N/A"/>
             </frame>
             <frame id="energy" y="2" height="parent.h - 1" visible="false">
                 <label x="(parent.w - self.w)/2" y="2" text="Interface" fg="gray"/>
@@ -100,14 +97,11 @@
                 <label id="targetEnergyLabel" x="2" y="8" text="Target"/>
                 <label id="targetEnergy" x="targetEnergyLabel.x + targetEnergyLabel.w + 1" y="8" text="N/A" fg="blue"/>
                 <progressbar id="energyProgress" x="2" y="10" width="parent.w - 2" bg="red" progressColor="green"/>
-                <label x="(parent.w - self.w)/2" y="12" text="New Target" fg="gray"/>
-                <input id="newTarget" x="2" y="13" width="16" type="number"/>
-                <button x="newTarget.x + newTarget.w + 1" y="newTarget.y" width="parent.w - newTarget.x - newTarget.w - 1" height="1" text="Set" onClick="setEnergyTarget"/>
             </frame>
             <frame id="status" y="2" height="parent.h - 1" visible="false">
                 <label id="isConnectedLabel" x="2" y="2" text="Connected"/>
                 <checkbox id="isConnected" x="isConnectedLabel.x + isConnectedLabel.w + 1" y="isConnectedLabel.y" bg="cyan" enabled="false"/>
-                <label id="isWormholeLabel" x="2" y="isConnectedLabel.y + 2" text="Wormhole"/>
+                <label id="isWormholeLabel" x="isConnected.x + isConnected.w + 2" y="isConnected.y" text="Wormhole"/>
                 <checkbox id="isWormhole" x="isWormholeLabel.x + isWormholeLabel.w + 1" y="isWormholeLabel.y" bg="cyan" enabled="false"/>
                 <label id="isDialingOutLabel" x="2" y="isWormholeLabel.y + 2" text="Dialing Out"/>
                 <checkbox id="isDialingOut" x="isDialingOutLabel.x + isDialingOutLabel.w + 1" y="isDialingOutLabel.y" bg="cyan" enabled="false"/>
@@ -116,17 +110,55 @@
                 <label id="chevronsLabel" x="2" y="openTimeLabel.y + 2" text="Chevrons Engaged"/>
                 <label id="chevrons" x="chevronsLabel.x + chevronsLabel.w + 1" y="chevronsLabel.y" fg="blue" text="N/A"/>
                 <label id="connectedAddressLabel" x="2" y="chevronsLabel.y + 2" text="Connected Address"/>
-                <label id="connectedAddress" x="2" y="connectedAddressLabel.y + 1" width="parent.w  - 2" bg="cyan" text="N/A"/>
+                <label id="connectedName" x="2" y="connectedAddressLabel.y + 1" width="parent.w  - 2" bg="cyan" text="N/A"/>
+                <label id="connectedAddress" x="2" y="connectedName.y + 1" width="parent.w  - 2" bg="cyan" text="N/A"/>
                 <label id="messageLabel" x="(parent.w - self.w)/2" y="connectedAddress.y + 2" fg="gray" text="Message"/>
                 <textfield id="message" x="2" y="messageLabel.y + 1" width="parent.w - 2" height="2"/>
                 <button x="parent.w - self.w - 1" y="message.y + message.h" width="6" height="1" text="Send" onClick="tell"/>
             </frame>
         </frame>
     </frame>
+    <frame id="vault" visible="false">
+        <label id="hostKeyLabel" x="2" y="2" text="My key:"/>
+        <label id="hostKey" x="hostKeyLabel.x + hostKeyLabel.w + 1" y="2" width="16" bg="gray" fg="white"/>
+        <list id="list" x="2" y="hostKeyLabel.y + 2" width="parent.w - 3" height="parent.h - 12"/>
+        <button id="up" x="list.x + list.w" y="list.y" width="1" height="1" text="" onClick="scrollUp"/>
+        <button id="down" x="list.x + list.w" y="list.y + list.h - 1" width="1" height="1" text="" onClick="scrollDown"/>
+        <pane id="scroller" x="up.x" y="up.y + up.h" width="1" height="down.y - up.y" bg="black"/>
+        <button x="2" y="parent.h - 7" width="7" bg="green" text="Add" onClick="register"/>
+        <button x="10" y="parent.h - 7" width="7" bg="red" text="Del" onClick="forget"/>
+        <button id="password" x="2" y="parent.h - 3" width="14" onClick="setPassword"/>
+        <button x="parent.w - self.w" y="parent.h - 3" text="Back" width="6" onClick="exitVault"/>
+    </frame>
     <frame id="message" x="2" y="(parent.h - self.h)/ 2" width="parent.w - 2" height="11" bg="lightBlue" shadowColor="cyan" movable="true" visible="false">
         <pane width="parent.w" height="1" bg="blue"/>
         <label x="(parent.w - self.w)/2" fg="white" text="Received Message"/>
         <button x="parent.w" width="1" height="1" bg="red" fg="white" text="X" onClick="hideMessage"/>
         <textfield id="content" x="2" y="3" width="parent.w - 2" height="parent.h - 4" bg="white" fg="black"/>
+    </frame>
+    <frame id="alert" x="2" y="(parent.h - self.h)/2" width="parent.w - 2" height="13" bg="orange" visible="false">
+        <pane width="parent.w" height="1" bg="red"/>
+        <label x="parent.w/2-self.w/2" fg="white" text="Attention!"/>
+        <textfield id="content" x="2" y="3" width="parent.w - 2" height="parent.h - 7" fg="black" bg="pink" enabled="false"/>
+        <button id="accept" x="3" y="parent.h-3" width="9" bg="green" text="" onClick="alertAccept"/>
+        <button id="cancel" x="parent.w - self.w - 1" y="parent.h-3" width="9" bg="blue" text="" onClick="alertCancel"/>
+    </frame>
+    <frame id="passwd" x="2" y="(parent.h - self.h)/2" width="parent.w - 2" height="8" bg="orange" visible="false">
+        <pane width="parent.w" height="1" bg="red"/>
+        <label x="parent.w/2-self.w/2" fg="white" text="Input Password"/>
+        <input id="password" x="2" y="3" width="parent.w - 2" type="password"/>
+        <button x="3" y="parent.h-3" width="9" bg="green" text="Done" onClick="passwordDone"/>
+        <button x="parent.w - self.w - 1" y="parent.h-3" width="9" bg="blue" text="Cancel" onClick="passwordCancel"/>
+    </frame>
+    <frame id="chpass" x="2" y="(parent.h - self.h)/2" width="parent.w - 2" height="12" bg="lightBlue" visible="false">
+        <pane width="parent.w" height="1" bg="blue"/>
+        <label x="parent.w/2-self.w/2" fg="white" text="Change Password"/>
+        <label id="chpassmsg" x="parent.w/2-self.w/2" y="3" fg="red" text=""/>
+        <label x="2" y="5" text="New"/>
+        <input id="password" x="10" y="5" width="parent.w - self.x" type="password"/>
+        <label x="2" y="7" text="Confirm"/>
+        <input id="confirm" x="10" y="7" width="parent.w - self.x" type="password"/>
+        <button x="3" y="parent.h-3" width="9" bg="green" text="Done" onClick="chpassDone"/>
+        <button x="parent.w - self.w - 1" y="parent.h-3" width="9" bg="cyan" text="Cancel" onClick="chpassCancel"/>
     </frame>
 </frame>
