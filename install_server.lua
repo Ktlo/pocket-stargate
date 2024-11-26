@@ -1,5 +1,5 @@
 local PREFIX = "https://raw.githubusercontent.com/Ktlo/pocket-stargate"
-local BRANCH = "develop"
+local BRANCH = "old"
 
 --------------------------------
 
