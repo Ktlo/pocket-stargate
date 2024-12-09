@@ -12,6 +12,7 @@ local DEFAULT_LOCATION = "file:addresses.conf"
 local addressesLocation = read(nil, nil, nil, settings.get("psg.addressesLocation", DEFAULT_LOCATION))
 
 settings.set("psg.addressesLocation", addressesLocation)
+settings.save()
 
 print("Unpacking files...")
 if not fs.exists("addresses.conf") and DEFAULT_LOCATION == addressesLocation then
