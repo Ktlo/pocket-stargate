@@ -13,21 +13,26 @@ local library = {}
 
 local task_methods = {}
 
-task_methods._selector = {}
+task_methods.selector = {}
 
-function task_methods._selector.enter(self)
+function task_methods.selector.immediate(self)
     local future = self.future
-    return future._selector.enter(future)
+    return future.selector.immediate(future)
 end
 
-function task_methods._selector.condition(self, context, event)
+function task_methods.selector.enter(self)
     local future = self.future
-    return future._selector.condition(future, context, event)
+    return future.selector.enter(future)
 end
 
-function task_methods._selector.leave(self, context, selected)
+function task_methods.selector.condition(self, context, event)
     local future = self.future
-    return future._selector.leave(future, context, selected)
+    return future.selector.condition(future, context, event)
+end
+
+function task_methods.selector.leave(self, context, selected)
+    local future = self.future
+    return future.selector.leave(future, context, selected)
 end
 
 task_methods.wait = concurrent.wait

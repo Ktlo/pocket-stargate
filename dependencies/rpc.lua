@@ -115,12 +115,8 @@ local function executeRemote(client, mtype, fill, ...)
     local response = job.async(function()
         return client.exchange(request).result
     end)
-    local timeout = job.async(function()
-        os.sleep(client.timeout)
-        return nil
-    end)
-    local result = job.any(response, timeout):await()
-    if not result then
+    local ok, result = response:await_timeout(client.timeout)
+    if not ok then
         error("timeout", 3)
     end
     if result.status == 'success' then

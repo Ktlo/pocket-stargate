@@ -196,7 +196,7 @@ end
 local networkProperty
 do
     local network
-    if tier >=3 then
+    if tier >= 3 then
         network = stargate.getNetwork()
     else
         network = false
@@ -431,17 +431,29 @@ local function encodeSymbolManual(symbol, slow)
     end
 end
 
+local canEngageImmediatly = {
+    ["sgjourney:milky_way_stargate"] = true;
+    ["sgjourney:classic_stargate"] = true;
+    ["sgjourney:tollan_stargate"] = true;
+}
+
+local isMW = mStargateType == "sgjourney:milky_way_stargate"
+canEngageImmediatly = canEngageImmediatly[mStargateType]
+
 local function encodeSymbol(symbol, slow)
-    local isMW = stargate.getStargateType() == "sgjourney:milky_way_stargate"
     if preferManual and isMW and slow then
         encodeSymbolManual(symbol, slow)
     elseif tier >= 2 then
         local engagedTarget = engagedChevronsProperty.value + 1
-        stargate.engageSymbol(symbol)
+        coroutine.wrap(function()
+            stargate.engageSymbol(symbol)
+        end)()
         if slow then
             os.sleep(0.5)
         end
-        engagedChevronsProperty:wait_until(function(value) return value == engagedTarget end)
+        if slow or not canEngageImmediatly then
+            engagedChevronsProperty:wait_until(function(value) return value == engagedTarget end)
+        end
     elseif isMW then
         encodeSymbolManual(symbol, slow)
     end

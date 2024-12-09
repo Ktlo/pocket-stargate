@@ -1,76 +1,131 @@
-local function removeFromList(list, element)
-    for i=1, #list do
-        if element == list[i] then
-            table.remove(list, i)
-            return true
-        end
-    end
-    return false
-end
+local os_pullEventRaw, os_startTimer, os_cancelTimer = os.pullEventRaw, os.startTimer, os.cancelTimer
+local table_unpack, table_pack, table_remove, table_insert = table.unpack, table.pack, table.remove, table.insert
+local next, setmetatable, select, error = next, setmetatable, select, error
+
+----------------------------------------------------
 
 local concurrent = {}
 
-local immediately = { 'immediate' }
+local function wait_pattern_timeout(object, timeout)
+    local selector = object.selector
+    local immediate = { selector.immediate(object) }
+    if immediate[1] then
+        return true, table_unpack(immediate, 2)
+    end
+    local context = selector.enter(object)
+    local timer
+    if timeout then
+        timer = os_startTimer(timeout)
+    else
+        timer = nil
+    end
+    repeat
+        local event = { os_pullEventRaw() }
+        local event_name = event[1]
+        if event_name == 'terminate' then
+            selector.leave(object, context, false)
+            if timer then
+                os_cancelTimer(timer)
+            end
+            error("Terminated", 0)
+        elseif event_name == 'timer' and timer == event[2] then
+            selector.leave(object, context, false)
+            return false
+        end
+    until selector.condition(object, context, event)
+    if timer then
+        os_cancelTimer(timer)
+    end
+    return true, selector.leave(object, context, true)
+end
 
 local function wait_pattern(object)
-    local selector = object._selector
-    local context = selector.enter(object)
-    if not selector.condition(object, context, immediately) then
-        repeat
-            local event = table.pack(os.pullEvent())
-        until selector.condition(object, context, event)
-    end
-    return selector.leave(object, context, true)
+    return select(2, wait_pattern_timeout(object, nil))
 end
 
 concurrent.wait = wait_pattern
 
-function concurrent.select(...)
+concurrent.wait_timeout = wait_pattern_timeout
+
+local function select_timeout(timeout, ...)
     local objects = { ... }
     local selectors = {}
     local contexts = {}
-    for i, object in ipairs(objects) do
-        local selector = object._selector
-        selectors[i] = selector
-        contexts[i] = selector.enter(object)
-    end
     local n = #objects
-    local selected = nil
     for i=1, n do
         local object = objects[i]
-        local selector = selectors[i]
-        local context = contexts[i]
-        if selector.condition(object, context, immediately) then
-            selected = i
-            break
+        local immediate = { object.selector.immediate(object) }
+        if immediate[1] then
+            return table_unpack(immediate, 2)
         end
     end
-    if not selected then
-        repeat
-            local event = table.pack(os.pullEvent())
+    for i=1, n do
+        local object = objects[i]
+        local selector = object.selector
+        selectors[i] = selector
+        contexts[i] = assert(selector.enter(object), "no context")
+    end
+    local timer
+    if timeout then
+        timer = os_startTimer(timeout)
+    else
+        timer = nil
+    end
+    local selected = nil
+    repeat
+        local event = table_pack(os_pullEventRaw())
+        local event_name = event[1]
+        if event_name == 'terminate' then
             for i=1, n do
                 local object = objects[i]
                 local selector = selectors[i]
                 local context = contexts[i]
-                if selector.condition(object, context, event) then
-                    selected = i
-                    break
-                end
+                selector.leave(object, context, false)
             end
-        until selected
-    end
+            if timer then
+                os_cancelTimer(timer)
+            end
+            error("Terminated", 0)
+        elseif event_name == 'timer' and timer == event[2] then
+            for i=1, n do
+                local object = objects[i]
+                local selector = selectors[i]
+                local context = contexts[i]
+                selector.leave(object, context, false)
+            end
+            return nil
+        end
+        for i=1, n do
+            local object = objects[i]
+            local selector = selectors[i]
+            local context = contexts[i]
+            if selector.condition(object, context, event) then
+                selected = i
+                break
+            end
+        end
+    until selected
     local result
     for i=1, n do
         local object = objects[i]
         local selector = selectors[i]
         local context = contexts[i]
         if i == selected then
-            result = table.pack(selector.leave(object, context, true))
+            result = table_pack(selector.leave(object, context, true))
         else
             selector.leave(object, context, false)
         end
     end
-    return objects[selected], table.unpack(result)
+    if timer then
+        os_cancelTimer(timer)
+    end
+    return objects[selected], table_unpack(result)
+end
+
+concurrent.select_timeout = select_timeout
+
+function concurrent.select(...)
+    return select_timeout(nil, ...)
 end
 
 --------------------------------------------
@@ -79,32 +134,36 @@ local notify_methods = {}
 
 local notifyConsumerIdCounter = 1
 
-notify_methods._selector = {}
+notify_methods.selector = {}
 
-function notify_methods._selector.enter(self)
+function notify_methods.immediate(self)
+    return false
+end
+
+function notify_methods.selector.enter(self)
     local consumerId = notifyConsumerIdCounter
     notifyConsumerIdCounter = notifyConsumerIdCounter + 1
-    table.insert(self.consumers, consumerId)
+    self.consumers[consumerId] = true
     return consumerId
 end
 
-function notify_methods._selector.condition(self, consumerId, event)
+function notify_methods.selector.condition(self, consumerId, event)
     local eventName, notifyId, receivedConsumerId = table.unpack(event)
     return eventName == 'notify_wake' and notifyId == self.id and (receivedConsumerId == consumerId or not receivedConsumerId)
 end
 
-function notify_methods._selector.leave(self, consumerId, selected)
+function notify_methods.selector.leave(self, consumerId, selected)
     if not selected then
-        removeFromList(self.consumers, consumerId)
-        -- assert deleted
+        self.consumers[consumerId] = nil
     end
 end
 
 notify_methods.wait = wait_pattern
 
 function notify_methods:wake()
-    if #self.consumers > 0 then
-        local consumer = table.remove(self.consumers, 1)
+    local consumer = next(self.consumers)
+    self.consumers[consumer] = nil
+    if consumer then
         os.queueEvent("notify_wake", self.id, consumer)
         return true
     else
@@ -113,7 +172,7 @@ function notify_methods:wake()
 end
 
 function notify_methods:wake_all()
-    if #self.consumers > 0 then
+    if next(self.consumers) then
         self.consumers = {}
         os.queueEvent("notify_wake", self.id)
         return true
@@ -138,54 +197,26 @@ function concurrent.notify()
     return setmetatable(notify, notify_meta)
 end
 
-local function with_notify_selector_enter(condition, self)
-    if condition then
-        return { true }
-    else
-        local notify = self.notify
-        return { false, notify._selector.enter(notify) }
-    end
+local function with_notify_selector_enter(self)
+    local notify = self.notify
+    return notify.selector.enter(notify)
 end
 
-local function with_notify_selector_condition(self, context, event)
-    local immediate, notify_context = table.unpack(context)
-    if immediate then
-        return true
-    end
+local function with_notify_selector_condition(self, notify_context, event)
     local notify = self.notify
-    return notify._selector.condition(notify, notify_context, event)
+    return notify.selector.condition(notify, notify_context, event)
 end
 
 local function with_notify_selector_leave(self, notify_context, selected)
     local notify = self.notify
-    notify._selector.leave(notify, notify_context, selected)
+    notify.selector.leave(notify, notify_context, selected)
 end
 
 --------------------------------------------
 
 local mutex_methods = {}
 
-mutex_methods._selector = {}
-
-function mutex_methods._selector.enter(self)
-    return with_notify_selector_enter(self:try_lock(), self)
-end
-
-mutex_methods._selector.condition = with_notify_selector_condition
-
-function mutex_methods._selector.leave(self, context, selected)
-    local immediate, notify_context = table.unpack(context)
-    if immediate and selected then
-        return
-    end
-    if immediate then
-        self:unlock()
-        return
-    end
-    with_notify_selector_leave(self, notify_context, selected)
-end
-
-function mutex_methods:try_lock()
+local function mutex_methods_try_lock(self)
     if self.locked then
         return false
     else
@@ -194,9 +225,24 @@ function mutex_methods:try_lock()
     end
 end
 
+mutex_methods.selector = {}
+mutex_methods.selector.immediate = mutex_methods_try_lock
+mutex_methods.selector.enter = with_notify_selector_enter
+mutex_methods.selector.condition = with_notify_selector_condition
+function mutex_methods.selector.leave(self, context, selected)
+    if not selected and not self.notify[context] then
+        -- not selected by this select and was chosen by previous unlock call
+        -- should unlock is for someone else ortherwise will be locked forever
+        self:unlock()
+    end
+    with_notify_selector_leave(self, context, selected)
+end
+
+mutex_methods.try_lock = mutex_methods_try_lock
+
 function mutex_methods:unlock()
     if not self.locked then
-        error("mutex not locked", 1)
+        error("mutex not locked", 2)
     end
     if not self.notify:wake() then
         self.locked = false
@@ -207,10 +253,10 @@ mutex_methods.lock = wait_pattern
 
 function mutex_methods:with_lock(action)
     self:lock()
-    local result = table.pack(pcall(action))
+    local result = { pcall(action) }
     self:unlock()
     if result[1] then
-        return table.unpack(result, 2)
+        return table_unpack(result, 2)
     else
         error(result[2], 0)
     end
@@ -220,7 +266,7 @@ function mutex_methods:wrap(action)
     return function(...)
         local args = {...}
         return self:with_lock(function()
-            return action(table.unpack(args))
+            return action(table_unpack(args))
         end)
     end
 end
@@ -241,40 +287,36 @@ end;
 
 local channel_methods = {}
 
-channel_methods._selector = {}
-
-function channel_methods._selector.enter(self)
-    return with_notify_selector_enter(#self.queue > 0, self)
-end
-
-channel_methods._selector.condition = with_notify_selector_condition
-
-function channel_methods._selector.leave(self, context, selected)
-    local immediate, notify_context = table.unpack(context)
-    if immediate and selected then
-        return table.remove(self.queue, 1)
-    end
-    if immediate then
-        return
-    end
-    with_notify_selector_leave(self, notify_context, selected)
-    if selected then
-        return table.remove(self.queue, 1)
-    end
-end
-
-function channel_methods:send(obj)
-    table.insert(self.queue, obj)
-    self.notify:wake()
-end
-
-function channel_methods:try_recv()
+local function channel_methods_try_recv(self)
     if #self.queue > 0 then
-        return true, table.remove(self.queue, 1)
+        return true, table_remove(self.queue, 1)
     else
         return false
     end
 end
+
+channel_methods.selector = {}
+
+channel_methods.selector.immediate = channel_methods_try_recv
+channel_methods.selector.enter = with_notify_selector_enter
+channel_methods.selector.condition = with_notify_selector_condition
+
+function channel_methods.selector.leave(self, notify_context, selected)
+    if not selected and not self.notify[notify_context] then
+        self.notify:wake()
+    end
+    with_notify_selector_leave(self, notify_context, selected)
+    if selected then
+        return table_remove(self.queue, 1)
+    end
+end
+
+function channel_methods:send(obj)
+    table_insert(self.queue, obj)
+    self.notify:wake()
+end
+
+channel_methods.try_recv = channel_methods_try_recv
 
 channel_methods.recv = wait_pattern
 
@@ -295,29 +337,28 @@ end
 local future_methods = {}
 
 local function future_extract_result(self)
-    if self.error then
+    if self.status == 'fail' then
         return false, self.error
     else
-        return true, table.unpack(self.value)
+        return true, table_unpack(self.value)
     end
 end
 
-future_methods._selector = {}
-
-function future_methods._selector.enter(self)
-    return with_notify_selector_enter(self.status ~= 'idle', self)
+local function future_methods_try_wait(self)
+    if self.status ~= 'idle' then
+        return true, future_extract_result(self)
+    else
+        return false
+    end
 end
 
-future_methods._selector.condition = with_notify_selector_condition
+future_methods.selector = {}
 
-function future_methods._selector.leave(self, context, selected)
-    local immediate, notify_context = table.unpack(context)
-    if immediate and selected then
-        return future_extract_result(self)
-    end
-    if immediate then
-        return
-    end
+future_methods.selector.immediate = future_methods_try_wait
+future_methods.selector.enter = with_notify_selector_enter
+future_methods.selector.condition = with_notify_selector_condition
+
+function future_methods.selector.leave(self, notify_context, selected)
     with_notify_selector_leave(self, notify_context, selected)
     if selected then
         return future_extract_result(self)
@@ -327,9 +368,9 @@ end
 future_methods.wait = wait_pattern
 
 function future_methods:get()
-    local result = table.pack(self:wait())
+    local result = { self:wait() }
     if result[1] then
-        return table.unpack(result, 2)
+        return table_unpack(result, 2)
     else
         error(result[2], 2)
     end
@@ -344,7 +385,7 @@ end
 function future_methods:submit(...)
     checkFutureIdle(self)
     self.status = 'success'
-    self.value = table.pack(...)
+    self.value = table_pack(...)
     self.notify:wake_all()
 end
 
@@ -379,21 +420,24 @@ end
 
 local property_methods = {}
 
-property_methods._selector = {}
+property_methods.selector = {}
 
-function property_methods._selector.enter(self)
-    local notify = self.notify
-    return { self.value, notify._selector.enter(notify) }
+function property_methods.selector.immediate(self)
+    return false
 end
 
-function property_methods._selector.condition(self, context, event)
-    local old_value, notify_context = table.unpack(context)
-    local notify = self.notify
-    return notify._selector.condition(notify, notify_context, event)
+function property_methods.selector.enter(self)
+    return { self.value, with_notify_selector_enter(self) }
 end
 
-function property_methods._selector.leave(self, context, selected)
-    local _, notify_context = table.unpack(context)
+function property_methods.selector.condition(self, context, event)
+    local old_value, notify_context = context[1], context[2]
+    local notify = self.notify
+    return notify.selector.condition(notify, notify_context, event) and old_value ~= self.value
+end
+
+function property_methods.selector.leave(self, context, selected)
+    local notify_context = context[2]
     with_notify_selector_leave(self, notify_context, selected)
     if selected then
         return self.value
@@ -410,9 +454,13 @@ end
 function property_methods:collect(collector)
     collector(self.value)
     while true do
-        -- self.notify:wait()
-        -- collector(self.value)
-        collector(wait_pattern(self))
+        local value = wait_pattern(self)
+        collector(value)
+        while self.value ~= value do
+            -- cases when collector changes itself
+            value = self.value
+            collector(value)
+        end
     end
 end
 

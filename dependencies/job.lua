@@ -11,21 +11,26 @@ local library = {}
 
 local job_methods = {}
 
-job_methods._selector = {}
+job_methods.selector = {}
 
-function job_methods._selector.enter(self)
+function job_methods.selector.immediate(self)
     local future = self.future
-    return future._selector.enter(future)
+    return future.selector.immediate(future)
 end
 
-function job_methods._selector.condition(self, context, event)
+function job_methods.selector.enter(self)
     local future = self.future
-    return future._selector.condition(future, context, event)
+    return future.selector.enter(future)
 end
 
-function job_methods._selector.leave(self, context, selected)
+function job_methods.selector.condition(self, context, event)
     local future = self.future
-    return future._selector.leave(future, context, selected)
+    return future.selector.condition(future, context, event)
+end
+
+function job_methods.selector.leave(self, context, selected)
+    local future = self.future
+    return future.selector.leave(future, context, selected)
 end
 
 local job_meta = {
@@ -133,9 +138,18 @@ function job_methods:await()
     return self.future:get()
 end
 
+function job_methods:await_timeout(timeout)
+    if concurrent.wait_timeout(self, timeout) then
+        return true, self.future:get()
+    else
+        self:cancel()
+        return false
+    end
+end
+
 function job_methods:finnalize(action)
     local task = self.task.pool:spawn_immortal(function()
-        self.future:wait()
+        concurrent.wait(self)
         return action()
     end)
     task:start()
@@ -243,17 +257,12 @@ function library.livedata.combine(action, ...)
     local properties = table.pack(...)
     local init = action(extract_values(properties))
     local result = concurrent.property(init)
-    for _, property in ipairs(properties) do
-        job:async(function()
-            property:collect(function()
-                result:set(action(extract_values(properties)))
-            end)
-        end)
-    end
-    -- job:async(function()
-    --     concurrent.select(table.unpack(properties))
-    --     result:set(action(extract_values(properties)))
-    -- end)
+    job:async(function()
+        while true do
+            concurrent.select(table.unpack(properties))
+            result:set(action(extract_values(properties)))
+        end
+    end)
     return result
 end
 
