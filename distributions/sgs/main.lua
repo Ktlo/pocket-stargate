@@ -294,9 +294,10 @@ local function insertDialedSymbol(index, symbol)
     insertAddressSymbol(connectedAddressProperty, index, symbol)
 end
 job.async(function()
+    local timer = concurrent.timer(DISCOVER_PERIOD)
     while true do
-        sleep(DISCOVER_PERIOD)
         pollValuesProperty:set(pollNewValues())
+        timer:sleep()
     end
 end)
 job.async(function()
@@ -325,8 +326,11 @@ job.async(function()
 end)
 job.async(function()
     while true do
-        os.pullEvent('stargate_incoming_wormhole')
+        local _, _, address = os.pullEvent('stargate_incoming_wormhole')
         isStargateConnectedProperty:set(true)
+        if address then
+            connectedAddressProperty:set(address)
+        end
     end
 end)
 job.async(function()

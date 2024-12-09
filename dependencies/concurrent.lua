@@ -1,4 +1,4 @@
-local os_pullEventRaw, os_startTimer, os_cancelTimer = os.pullEventRaw, os.startTimer, os.cancelTimer
+local os_pullEventRaw, os_startTimer, os_cancelTimer, os_epoch = os.pullEventRaw, os.startTimer, os.cancelTimer, os.epoch
 local table_unpack, table_pack, table_remove, table_insert = table.unpack, table.pack, table.remove, table.insert
 local next, setmetatable, select, error = next, setmetatable, select, error
 
@@ -487,6 +487,62 @@ function concurrent.property(init)
         notify = concurrent.notify();
     }
     return setmetatable(property, property_meta)
+end
+
+----------------------------------------------------
+
+local function ctime()
+    return os_epoch() / 1000
+end
+
+local timer_methods = {}
+
+timer_methods.selector = {}
+
+function timer_methods.selector.immediate(self)
+    local time = ctime()
+    local milestone = self.milestone
+    if time >= milestone then
+        self.milestone = milestone + self.period
+        return true
+    else
+        return false
+    end
+end
+
+function timer_methods.selector.enter(self)
+    local towait = self.milestone - ctime()
+    if towait < 0 then
+        towait = 0
+    end
+    return os_startTimer(towait)
+end
+
+function timer_methods.selector.condition(self, timer, event)
+    return event[1] == 'timer' and event[2] == timer
+end
+
+function timer_methods.selector.leave(self, timer, selected)
+    if not selected then
+        os_cancelTimer(timer)
+    end
+end
+
+timer_methods.sleep = wait_pattern
+
+local timer_meta = {
+    __index = timer_methods;
+}
+
+function concurrent.timer(period, start)
+    if not start then
+        start = ctime() + period
+    end
+    local timer = {
+        milestone = start;
+        period = period;
+    }
+    return setmetatable(timer, timer_meta)
 end
 
 ----------------------------------------------------

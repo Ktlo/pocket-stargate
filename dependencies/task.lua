@@ -66,7 +66,11 @@ local function task_continue(self, event)
         self.future:submit(table.unpack(result, 2))
         self.status = 'dead'
     else
-        self.event = result[2]
+        local next_event = result[2]
+        self.event = next_event
+        if next_event == 'wake' then
+            table.insert(self.pool.orders, {task=self, order='wake'})
+        end
     end
 end
 
@@ -86,7 +90,7 @@ end
 
 function task_methods:stop()
     if self.status == 'alive' then
-        os.queueEvent('task_stop', self.id)
+        table.insert(self.pool.orders, { task=self, order='stop' })
     end
 end
 
@@ -141,6 +145,22 @@ function pool_methods:resume(event)
     end
 end
 
+function pool_methods:process_orders_queue()
+    while next(self.orders) do
+        local queue = self.orders
+        self.orders = {}
+        for _, record in ipairs(queue) do
+            local task = record.task
+            local order = record.order
+            if order == 'stop' then
+                task_continue(task, { 'terminate' })
+            elseif order == 'wake' then
+                task_continue(task, { 'wake' })
+            end
+        end
+    end
+end
+
 function pool_methods:process_internal_events()
     local events = self.events
     if next(events) then
@@ -152,6 +172,7 @@ function pool_methods:process_internal_events()
 end
 
 function pool_methods:step()
+    self:process_orders_queue()
     self:process_internal_events()
     if next(self.tasks) then
         if next(self.events) then
@@ -184,6 +205,7 @@ function library.pool()
     local pool = {
         tasks = {};
         events = {};
+        orders = {};
     }
     return setmetatable(pool, pool_meta)
 end
@@ -203,6 +225,10 @@ function library.any(...)
         task:stop()
     end
     return table.unpack(result)
+end
+
+function library.yield()
+    coroutine.yield('wake')
 end
 
 -----------------------------------------------
