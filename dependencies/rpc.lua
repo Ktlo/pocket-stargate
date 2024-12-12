@@ -23,7 +23,7 @@ local function prepareError(server, id, error)
 end
 
 local function processRequest(commands, message, hostname)
-    if type(message) == 'table' and message.magic == "rpc" and message.kind == 'request' and (not hostname or message.server == hostname) then
+    if type(message) == 'table' and message.magic == "rpc" and message.kind == 'request' and message.server == hostname then
         local mtype = message.type
         if mtype == 'help' then
             local help = {}
@@ -99,7 +99,7 @@ end
 ------------------------------------------------------
 
 function rpc.is_response(request, response)
-    return type(response) == 'table' and response.magic == "rpc" and response.id == request.id and response.kind == 'response' and response.result and response.server == request.server
+    return type(response) == 'table' and response.magic == "rpc" and response.id == request.id and response.kind == 'response' and response.result -- and response.server == request.server
 end
 
 local function executeRemote(client, mtype, fill, ...)
@@ -224,20 +224,20 @@ end
 function rpc.subscribe(pull, action)
     return job.async(function()
         while true do
-            local message = pull()
+            local message, meta = pull()
             if type(message) == 'table' and message.magic == 'rpc' and message.kind == 'event' then
-                job.async(function() action(message.data) end)
+                job.async(function() action(message.data, meta) end)
             end
         end
     end)
 end
 
 local function networkSubscribePullTemplate(modem, channel)
-    local side, rchannel, message
+    local side, rchannel, message, distance
     repeat
-        _, side, rchannel, _, message = os.pullEvent("modem_message")
+        _, side, rchannel, _, message, distance = os.pullEvent("modem_message")
     until side == modem and rchannel == channel
-    return message
+    return message, {distance=distance}
 end
 
 function rpc.subscribe_network(modem, channel, action)

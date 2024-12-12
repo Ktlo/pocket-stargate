@@ -56,9 +56,7 @@ local otherside = rpc.client(othersideExchanger, TIMEOUT)
 
 basalt.setVariable("addressLength", 0)
 
-local serverIdProperty = concurrent.property(nil)
-
-local stats
+local statsProperty = concurrent.property(nil)
 local addressesTypeMenubar
 local addressesList
 
@@ -73,6 +71,7 @@ local function dom(path)
 end
 
 local function loadAddresses()
+    local stats = statsProperty.value
     if stats then
         local index = addressesTypeMenubar:getItemIndex()
         local newAddresses
@@ -154,29 +153,22 @@ basalt.setVariable("onFast", function(element)
     settings.save()
 end)
 
-local function saveCall(f)
-    return function(...)
-        local args = { ... }
+basalt.setVariable("dial", function()
+    local stats = statsProperty.value
+    if stats then
         job.async(function()
-            f(table.unpack(args))
+            if stats.basic.isConnected then
+                stargate.disconnect()
+            else
+                local index = addressesList:getItemIndex()
+                if index > 0 then
+                    local dialAddress = currentAddresses[index].address
+                    stargate.dial(dialAddress, not fastDialMode)
+                end
+            end
         end)
     end
-end
-
-local function dial()
-    if stats.basic.isConnected then
-        stargate.disconnect()
-    else
-        local index = addressesList:getItemIndex()
-        if index > 0 then
-            local dialAddress = currentAddresses[index].address
-            stargate.dial(dialAddress, not fastDialMode)
-        end
-    end
-end
-
-dial = saveCall(dial)
-basalt.setVariable("dial", dial)
+end)
 
 local authKeysList
 
@@ -191,16 +183,18 @@ local function addKeyToKeyringList(key, name)
     authKeysList:addItem(text, nil, nil, { key=key, name=name })
 end
 
-local function register()
-    local hostKey = stargate.register(vault.public_key())
-    local name = addresses.getname_by_key(stats.solarSystem)
-    if keyring.trust(hostKey, name) then
-        addKeyToKeyringList(hostKey, name)
+basalt.setVariable("register", function()
+    local stats = statsProperty.value
+    if stats then
+        job.async(function()
+            local hostKey = stargate.register(vault.public_key())
+            local name = addresses.getname_by_key(stats.solarSystem)
+            if keyring.trust(hostKey, name) then
+                addKeyToKeyringList(hostKey, name)
+            end
+        end)
     end
-end
-
-register = saveCall(register)
-basalt.setVariable("register", register)
+end)
 
 basalt.setVariable("forget", function()
     local i = authKeysList:getItemIndex()
@@ -211,56 +205,47 @@ basalt.setVariable("forget", function()
     end
 end)
 
-local function openVault()
+basalt.setVariable("openVault", function()
     dom { "root", "vault" }:show()
-end
-basalt.setVariable("openVault", openVault)
+end)
 
-local function exitVault()
+basalt.setVariable("exitVault", function()
     dom { "root", "vault" }:hide()
-end
-basalt.setVariable("exitVault", exitVault)
+end)
 
-local function engage(self)
+basalt.setVariable("engage", function(self)
     local symbol = tonumber(self:getValue())
-    stargate.engage(symbol)
-end
+    job.async(function()
+        stargate.engage(symbol)
+    end)
+end)
 
-engage = saveCall(engage)
-basalt.setVariable("engage", engage)
-
-local function engagePoo()
-    if stats.basic.isConnected then
-        stargate.disconnect()
-    else
-        stargate.engage(0)
+basalt.setVariable("engagePoo", function()
+    local stats = statsProperty.value
+    if stats then
+        if stats.basic.isConnected then
+            job.async(stargate.disconnect)
+        else
+            job.async(function() stargate.engage(0) end)
+        end
     end
-end
+end)
 
-engagePoo = saveCall(engagePoo)
-basalt.setVariable("engagePoo", engagePoo)
+basalt.setVariable("reset", function()
+    job.async(stargate.disconnect)
+end)
 
-local function reset()
-    stargate.disconnect()
-end
-
-reset = saveCall(reset)
-basalt.setVariable("reset", reset)
-
-local function hideMessage()
+basalt.setVariable("hideMessage", function()
     (dom { 'root', 'message' }):hide()
-end
+end)
 
-basalt.setVariable("hideMessage", hideMessage)
-
-local function tell()
+basalt.setVariable("tell", function()
     local message = dom { 'root', 'main', 'stats', 'status', 'message' }
     local value = table.concat(message:getLines(), '\n')
-    stargate.tell(value)
-end
-
-tell = saveCall(tell)
-basalt.setVariable("tell", tell)
+    job.async(function()
+        stargate.tell(value)
+    end)
+end)
 
 local alertResult
 
@@ -340,6 +325,14 @@ basalt.setVariable("setPassword", function(button)
 end)
 
 job.run(function()
+
+local serverIdProperty = job.livedata.combine(function(stats)
+    if stats then
+        return stats.id
+    else
+        return nil
+    end
+end, statsProperty)
 
 basalt.createFrame()
     :setTheme(theme)
@@ -440,7 +433,7 @@ addressesTypeMenubar = dom { 'root', 'main', 'addressbook', 'addressType' }
 addressesList = dom { 'root', 'main', 'addressbook', 'list' }
 local dialButton = dom { 'root', 'main', 'addressbook', 'dial' }
 
-local function updateDialButtonText()
+local function updateDialButtonText(stats)
     local text
     if stats.basic.isConnected then
         if stats.basic.isWormholeOpen then
@@ -458,7 +451,7 @@ local dialNameLabel = dom { 'root', 'main', 'dhd', 'name' }
 local dialAddress = dom { 'root', 'main', 'dhd', 'dialAddress' }
 local bufferAddress = dom { 'root', 'main', 'dhd', 'bufferAddress' }
 
-local function updateDialAddress()
+local function updateDialAddress(stats)
     local dialAddressText, bufferAddressText
     local dialedAddress = stats.dialedAddress
     dialAddressText = addresses.tostring(dialedAddress)
@@ -499,7 +492,8 @@ local chevronsLabel = dom { 'root', 'main', 'stats', 'status', 'chevrons' }
 local connectedNameLabel = dom { 'root', 'main', 'stats', 'status', 'connectedName' }
 local connectedAddressLabel = dom { 'root', 'main', 'stats', 'status', 'connectedAddress' }
 
-local function updateConnectedAddresds(address)
+local function updateConnectedAddresds(stats)
+    local address = stats.advanced.connectedAddress
     if not next(address) then
         connectedNameLabel:setText("")
     elseif stats.basic.isWormholeOpen or stats.basic.isDialingOut then
@@ -508,61 +502,76 @@ local function updateConnectedAddresds(address)
     connectedAddressLabel:setText(addresses.tostring(address))
 end
 
-local function updateStats()
-    if stats then
-        generationLabel:setText(tostring(stats.basic.generation))
-        typeLabel:setText(tostring(stats.basic.type))
-        variantLabel:setText(tostring(stats.basic.variant))
-        if stats.advanced then
-            localAddressLabel:setText(addresses.tostring(stats.advanced.localAddress))
-        else
-            localAddressLabel:setText("N/A")
-        end
-        feedbackCodeLabel:setText(tostring(stats.basic.recentFeedbackCode))
-        if stats.crystal then
-            feedbackMessageLabel:setText(stats.crystal.recentFeedbackName)
-        else
-            feedbackMessageLabel:setText("N/A")
-        end
+local function updateStats(stats)
+    generationLabel:setText(tostring(stats.basic.generation))
+    typeLabel:setText(tostring(stats.basic.type))
+    variantLabel:setText(tostring(stats.basic.variant))
+    if stats.advanced then
+        localAddressLabel:setText(addresses.tostring(stats.advanced.localAddress))
+    else
+        localAddressLabel:setText("N/A")
+    end
+    feedbackCodeLabel:setText(tostring(stats.basic.recentFeedbackCode))
+    if stats.crystal then
+        feedbackMessageLabel:setText(stats.crystal.recentFeedbackName)
+    else
+        feedbackMessageLabel:setText("N/A")
+    end
 
-        energyLabel:setText(tostring(stats.basic.energy).." FE")
-        stargateEnergyLabel:setText(tostring(stats.basic.stargateEnergy).." FE")
-        targetEnergyLabel:setText(tostring(stats.basic.energyTarget).." FE")
-        if stats.basic.stargateEnergy > stats.basic.energyTarget then
-            energyProgressbar:setProgress(100)
-        else
-            energyProgressbar:setProgress(stats.basic.stargateEnergy/stats.basic.energyTarget*100)
-        end
+    energyLabel:setText(tostring(stats.basic.energy).." FE")
+    stargateEnergyLabel:setText(tostring(stats.basic.stargateEnergy).." FE")
+    targetEnergyLabel:setText(tostring(stats.basic.energyTarget).." FE")
+    if stats.basic.stargateEnergy > stats.basic.energyTarget then
+        energyProgressbar:setProgress(100)
+    else
+        energyProgressbar:setProgress(stats.basic.stargateEnergy/stats.basic.energyTarget*100)
+    end
 
-        isConnectedCheckbox:setValue(stats.basic.isConnected)
-        isWormholeCheckbox:setValue(stats.basic.isWormholeOpen)
-        isDialingOutCheckbox:setValue(stats.basic.isDialingOut)
-        openTimeLabel:setValue(tostring(stats.basic.openTime).." ticks")
-        chevronsLabel:setText(tostring(stats.basic.chevronsEngaged))
-        if stats.advanced then
-            updateConnectedAddresds(stats.advanced.connectedAddress)
-        else
-            connectedAddressLabel:setText("N/A")
-            connectedNameLabel:setText("")
-        end
+    isConnectedCheckbox:setValue(stats.basic.isConnected)
+    isWormholeCheckbox:setValue(stats.basic.isWormholeOpen)
+    isDialingOutCheckbox:setValue(stats.basic.isDialingOut)
+    openTimeLabel:setValue(tostring(stats.basic.openTime).." ticks")
+    chevronsLabel:setText(tostring(stats.basic.chevronsEngaged))
+    if stats.advanced then
+        updateConnectedAddresds(stats)
+    else
+        connectedAddressLabel:setText("N/A")
+        connectedNameLabel:setText("")
     end
 end
 
--- stats end
-
-job.livedata.subscribe(serverIdProperty, function()
-    loadAddresses()
+job.livedata.subscribe(statsProperty, function(stats)
+    if stats then
+        updateStats(stats)
+        updateDialAddress(stats)
+        updateDialButtonText(stats)
+    end
 end)
 
-local isWormholeProperty = concurrent.property(false)
+-- stats end
+
+local shouldAuthorizeProperty = job.livedata.combine(function(stats)
+    if not stats then
+        return nil
+    end
+    local basic = stats.basic
+    if basic.isWormholeOpen and basic.isDialingOut then
+        return stats.id
+    else
+        return nil
+    end
+end, statsProperty)
+
+job.livedata.subscribe(serverIdProperty, function(id)
+    loadAddresses()
+    stargate._state.server = id
+end)
 
 local lastJob = job.async(function()end)
 
-job.livedata.subscribe(isWormholeProperty, function(isWormhole)
-    if isWormhole then
-        if not stats.basic.isDialingOut then
-            return
-        end
+job.livedata.subscribe(shouldAuthorizeProperty, function(shouldAuthorize)
+    lastJob:cancel()
+    if shouldAuthorize then
         lastJob = job.running()
         local nonce = vault.gen_nonce()
         local ok, response = pcall(job.retry, 5, otherside.info, nonce)
@@ -622,8 +631,6 @@ job.livedata.subscribe(isWormholeProperty, function(isWormhole)
         else
             alert({"No response!", "Iris state is unknown!"}, false, "OK")
         end
-    else
-        lastJob:cancel()
     end
 end)
 
@@ -631,25 +638,27 @@ local function spawnHaltTimeout()
     return job.async(function()
         sleep(TIMEOUT)
         mainFrame:hide()
-        isWormholeProperty:set(false)
+        statsProperty:set(nil)
     end)
 end
 
 local haltJob = spawnHaltTimeout()
 
-rpc.subscribe_network(modem, CHANNEL_EVENT, function(event)
+rpc.subscribe_network(modem, CHANNEL_EVENT, function(event, meta)
+    local distance = meta.distance
     local type = event.type
     local data = event.data
-    haltJob:cancel()
-    haltJob = spawnHaltTimeout()
     if type == 'discover' then
+        local stats = statsProperty.value
+        if stats and stats.id ~= data.id and distance and distance > stats.distance then
+            -- prefer closest PSG server
+            return
+        end
+        haltJob:cancel()
+        haltJob = spawnHaltTimeout()
+        data.distance = distance
         mainFrame:show()
-        stats = data
-        serverIdProperty:set(stats.id)
-        updateDialButtonText()
-        updateDialAddress()
-        updateStats()
-        isWormholeProperty:set(stats.basic.isWormholeOpen)
+        statsProperty:set(data)
     elseif type == 'message' then
         local message = data
         local decoded = textutils.unserialise(message)

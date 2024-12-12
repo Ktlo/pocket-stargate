@@ -19,16 +19,11 @@ local speaker = peripheral.find("speaker")
 if speaker then
     speaker = peripheral.getName(speaker)
 end
-local anyModem = peripheral.find("modem")
 local wiredModem = peripheral.find("modem", function(_, modem) return not modem.isWireless() end)
-if wiredModem then
-    wiredModem = peripheral.getName(wiredModem)
-end
-local modem = peripheral.find("modem", function(_, modem) return modem.isWireless() end) or anyModem
-if not modem then
+local wirelessModem = peripheral.find("modem", function(_, modem) return modem.isWireless() end)
+if not wiredModem and not wirelessModem then
     error "No modem found; exiting..."
 end
-modem = peripheral.getName(modem)
 
 local tier
 local stargate
@@ -90,7 +85,7 @@ local preferManual = settings.get("preferManual", false)
 local autoIrisProperty = concurrent.property(settings.get("autoIris", true))
 local enableAuditProperty = concurrent.property(settings.get("enableAudit", false))
 
-local id = math.random(100000000000000)
+local id = os.getComputerID()
 
 local handlers = {}
 
@@ -294,10 +289,9 @@ local function insertDialedSymbol(index, symbol)
     insertAddressSymbol(connectedAddressProperty, index, symbol)
 end
 job.async(function()
-    local timer = concurrent.timer(DISCOVER_PERIOD)
     while true do
         pollValuesProperty:set(pollNewValues())
-        timer:sleep()
+        sleep(DISCOVER_PERIOD)
     end
 end)
 job.async(function()
@@ -784,7 +778,9 @@ job.livedata.determines(enableAuditProperty, function()
 end)
 
 local function broadcastEvent(event)
-    rpc.broadcast_network(modem, CHANNEL_EVENT, event)
+    if wirelessModem then
+        rpc.broadcast_network(wirelessModem, CHANNEL_EVENT, event)
+    end
     if wiredModem then
         rpc.broadcast_network(wiredModem, CHANNEL_EVENT, event)
     end
@@ -813,9 +809,13 @@ end)
 
 do
     local commands = rpc.simple_commands(handlers)
-    rpc.server_network(commands, modem, CHANNEL_COMMAND)
+    if wirelessModem then
+        rpc.server_network(commands, wirelessModem, CHANNEL_COMMAND) -- backward compatibility
+        rpc.server_network(commands, wirelessModem, CHANNEL_COMMAND, id)
+    end
     if wiredModem then
-        rpc.server_network(commands, wiredModem, CHANNEL_COMMAND)
+        rpc.server_network(commands, wiredModem, CHANNEL_COMMAND) -- backward compatibility
+        rpc.server_network(commands, wiredModem, CHANNEL_COMMAND, id)
     end
 end
 

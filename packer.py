@@ -40,7 +40,7 @@ local function loader(module)
             return nil, "not embedded in program"
         end
         modules[module] = nil
-        return load(text, "@/[included]/"..module..".lua", 't', _ENV)
+        return load(text, "@[included]/"..module..".lua", 't', _ENV)
     end
 end
 table.insert(package.loaders, loader)
@@ -50,7 +50,7 @@ def base64header(file):
     file.write("local base64 = [[")
     base64_lua = load_resource(deps.base64_dependency).decode('utf-8')
     file.write(base64_lua)
-    file.write("]]\nbase64 = load(base64, \"@/[included]/base64.lua\", 't', _ENV)()\n")
+    file.write("]]\nbase64 = load(base64, \"@[included]/base64.lua\", 't', _ENV)()\n")
 
 def include_resources(file, resources):
     for resource in resources:
@@ -81,7 +81,7 @@ with open(f"out/{distribution}.lua", 'w', newline='') as file:
     file.write("local entrypoint = \"")
     file.write(encode_text(load_resource(scope.program)))
     file.write("\"\n")
-    file.write(f"return load(base64.decode(entrypoint), \"@/[included]/{distribution}.lua\", 't', _ENV)(...)\n")
+    file.write(f"return load(base64.decode(entrypoint), \"@/\"..shell.getRunningProgram(), 't', _ENV)(...)\n")
 
 installer_functions_text = f"""
 function saveExtra(resource, filename)
@@ -119,4 +119,4 @@ with open(f"out/install_{distribution}.lua", 'w', newline='') as file:
     file.write("local entrypoint = base64.decode \"")
     file.write(encode_text(load_resource(scope.installer)))
     file.write("\"\n")
-    file.write("return load(entrypoint, \"@/[included]/installer.lua\", 't', _ENV)(...)\n")
+    file.write("return load(entrypoint, \"@[included]/installer.lua\", 't', _ENV)(...)\n")

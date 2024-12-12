@@ -47,6 +47,10 @@ concurrent.wait = wait_pattern
 
 concurrent.wait_timeout = wait_pattern_timeout
 
+function concurrent.try_wait(object)
+    return object.selector.immediate(object)
+end
+
 local function select_timeout(timeout, ...)
     local objects = { ... }
     local selectors = {}
@@ -63,7 +67,7 @@ local function select_timeout(timeout, ...)
         local object = objects[i]
         local selector = object.selector
         selectors[i] = selector
-        contexts[i] = assert(selector.enter(object), "no context")
+        contexts[i] = selector.enter(object)
     end
     local timer
     if timeout then
@@ -251,7 +255,7 @@ end
 
 mutex_methods.lock = wait_pattern
 
-function mutex_methods:with_lock(action)
+local function mutex_methods_with_lock(self, action)
     self:lock()
     local result = { pcall(action) }
     self:unlock()
@@ -262,7 +266,9 @@ function mutex_methods:with_lock(action)
     end
 end
 
-function mutex_methods:wrap(action)
+mutex_methods.with_lock = mutex_methods_with_lock
+
+local function mutex_methods_wrap(self, action)
     return function(...)
         local args = {...}
         return self:with_lock(function()
@@ -270,6 +276,8 @@ function mutex_methods:wrap(action)
         end)
     end
 end
+
+mutex_methods.wrap = mutex_methods_wrap
 
 local mutex_meta = {
     __index = mutex_methods;
@@ -487,62 +495,6 @@ function concurrent.property(init)
         notify = concurrent.notify();
     }
     return setmetatable(property, property_meta)
-end
-
-----------------------------------------------------
-
-local function ctime()
-    return os_epoch() / 1000
-end
-
-local timer_methods = {}
-
-timer_methods.selector = {}
-
-function timer_methods.selector.immediate(self)
-    local time = ctime()
-    local milestone = self.milestone
-    if time >= milestone then
-        self.milestone = milestone + self.period
-        return true
-    else
-        return false
-    end
-end
-
-function timer_methods.selector.enter(self)
-    local towait = self.milestone - ctime()
-    if towait < 0 then
-        towait = 0
-    end
-    return os_startTimer(towait)
-end
-
-function timer_methods.selector.condition(self, timer, event)
-    return event[1] == 'timer' and event[2] == timer
-end
-
-function timer_methods.selector.leave(self, timer, selected)
-    if not selected then
-        os_cancelTimer(timer)
-    end
-end
-
-timer_methods.sleep = wait_pattern
-
-local timer_meta = {
-    __index = timer_methods;
-}
-
-function concurrent.timer(period, start)
-    if not start then
-        start = ctime() + period
-    end
-    local timer = {
-        milestone = start;
-        period = period;
-    }
-    return setmetatable(timer, timer_meta)
 end
 
 ----------------------------------------------------
