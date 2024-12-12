@@ -1,3 +1,17 @@
+## v1.1.0 2024-12-13
+
+### Added
+- Support for stargates that are very close to each other. In this case Pocket Stargate prefers the nearest stargate (determines by distance to wireless modem).
+
+### Changed
+- Fast dialing mode now faster. All chevrons are encoded in one tick.
+- Greatly redused the amount of coroutines in the all distributions.
+- Now crash report uses simulated file system file names in stacktrace.
+
+### Fixed
+- #3 PSG installer did not save the addresses.conf location parameter.
+- Incomlete connected address were sent from a stargate server when some "engaged chevron" events were missed by the stargate server.
+
 ## v1.0.0 2024-11-26
 
 This version is incompatible with Stargate Journey version 0.6.32 and below.
