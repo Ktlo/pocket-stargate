@@ -5,6 +5,10 @@ local function endsWith(str, ending)
     return str:sub(-#ending) == ending
 end
 
+local function is_terminated(str)
+    return endsWith(str, "Terminated")
+end
+
 local library = {}
 
 ----------------------------------------
@@ -49,16 +53,16 @@ end
 local job_child_death
 
 local function job_terminate_condition(job)
-    if job.task.status ~= 'alive' and not next(job.children) and job.future.status == 'idle' then
-        if job.result.status == 'idle' then
-            job.result:from(job.task.future)
+    if job.task.status ~= 'alive' and not next(job.children) and not job.future.completed then
+        if not job.result.completed then
+            job.result:complete(job.task.future:get())
         end
-        job.future:from(job.result)
-        local status = job.future.status
-        if status == 'success' then
+        job.future:complete(job.result:get())
+        local success, err = job.future:get():extract()
+        if success then
             job.status = 'done'
         else
-            if endsWith(job.future.error, "Terminated") then
+            if is_terminated(err) then
                 job.status = 'canceled'
             else
                 job.status = 'bad'
@@ -72,8 +76,8 @@ end
 
 job_child_death = function(job, child)
     if child.status == 'bad' then
-        if job.result.status == 'idle' then
-            job.result:from(child.future)
+        if not job.result.completed then
+            job.result:complete(child.future:get())
             -- ignore parallel errors for now
             local root = job_root(job)
             local traces = root.traces or {}
@@ -135,12 +139,12 @@ function job_methods:cancel()
 end
 
 function job_methods:await()
-    return self.future:get()
+    return self.future:get():unwrap()
 end
 
 function job_methods:await_timeout(timeout)
     if concurrent.wait_timeout(self, timeout) then
-        return true, self.future:get()
+        return true, self:await()
     else
         self:cancel()
         return false
@@ -161,7 +165,7 @@ function library.run(action)
     local root = job_create(pool, action)
     root.task:start()
     pool:run()
-    root.future:wait()
+    root.future:get():unwrap()
     local traces = root.traces or {}
     local traceback = root.task.traceback
     if traceback then
@@ -227,6 +231,9 @@ function library.retry(times, action, ...)
             return table.unpack(r, 2)
         else
             err = r[2]
+            if is_terminated(err) then
+                break
+            end
         end
     end
     error(err, 0)

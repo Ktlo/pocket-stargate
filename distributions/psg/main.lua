@@ -19,6 +19,7 @@ local vault = require 'vault'
 local keys = require 'keys'
 local concurrent = require 'concurrent'
 local resources = require 'resources'
+local container = require 'container'
 
 local modem = peripheral.find("modem", function(_, modem) return modem.isWireless() end) or peripheral.find("modem")
 if not modem then
@@ -37,11 +38,9 @@ local fastDialMode = fastDialModeInit
 
 local stargate = rpc.client_network(modem, CHANNEL_COMMAND, TIMEOUT)
 
-local serializeOpts = { compact = true }
-
 local function othersideExchanger(request)
     job.async(function()
-        local message = textutils.serialize(request, serializeOpts)
+        local message = tostring(container.datum(request, true))
         pcall(stargate.tell, message)
     end)
     while true do
@@ -250,21 +249,21 @@ end)
 local alertResult
 
 basalt.setVariable("alertAccept", function()
-    alertResult:submit(true)
+    alertResult:complete(true)
 end)
 
 basalt.setVariable("alertCancel", function()
-    alertResult:submit(false)
+    alertResult:complete(false)
 end)
 
 local passwdResult, passwdPasswordElement
 
 basalt.setVariable("passwordDone", function()
-    passwdResult:submit(passwdPasswordElement:getValue())
+    passwdResult:complete(passwdPasswordElement:getValue())
 end)
 
 basalt.setVariable("passwordCancel", function()
-    passwdResult:submit(nil)
+    passwdResult:complete(nil)
 end)
 
 local chpassResult, chpassmsgElement, chpassPasswordElement, chpassConfirmElement
@@ -628,6 +627,8 @@ job.livedata.subscribe(shouldAuthorizeProperty, function(shouldAuthorize)
                     alert({"Authorized!"}, false, "OK")
                 end
             end
+        elseif response:sub(-10) == "Terminated" then
+            error("Terminated", 0)
         else
             alert({"No response!", "Iris state is unknown!"}, false, "OK")
         end

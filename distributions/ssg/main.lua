@@ -61,11 +61,11 @@ end)
 local alertResult, alert
 
 basalt.setVariable("alertAccept", function()
-    alertResult:submit(true)
+    alertResult:complete(true)
 end)
 
 basalt.setVariable("alertCancel", function()
-    alertResult:submit(false)
+    alertResult:complete(false)
 end)
 
 local selectedFilterListProperty = concurrent.property(1)
@@ -138,11 +138,11 @@ local numberDialogResult
 basalt.setVariable("numberDone", function()
     local input = dom { 'root', 'number', 'input' }
     local value = input:getValue()
-    numberDialogResult:submit(tonumber(value) or 0)
+    numberDialogResult:complete(tonumber(value) or 0)
 end)
 
 basalt.setVariable("numberBack", function()
-    numberDialogResult:submit(nil)
+    numberDialogResult:complete(nil)
 end)
 
 local inputAddressProperty = concurrent.property({})
@@ -175,11 +175,11 @@ end)
 local addressDialogResult
 
 basalt.setVariable("addressDone", function()
-    addressDialogResult:submit(inputAddressProperty.value)
+    addressDialogResult:complete(inputAddressProperty.value)
 end)
 
 basalt.setVariable("addressBack", function()
-    addressDialogResult:submit(nil)
+    addressDialogResult:complete(nil)
 end)
 
 local inputAddressDialog, inputNumberDialog

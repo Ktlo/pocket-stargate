@@ -1,4 +1,5 @@
 local concurrent = require 'concurrent'
+local container = require 'container'
 
 local function endsWith(str, ending)
     return str:sub(-#ending) == ending
@@ -38,7 +39,7 @@ end
 task_methods.wait = concurrent.wait
 
 function task_methods:join()
-    return self.future:get()
+    return self.future:get():unwrap()
 end
 
 local function task_continue(self, event)
@@ -55,7 +56,7 @@ local function task_continue(self, event)
     _G._TASK = prev_task
     if not result[1] then
         local msg = result[2]
-        self.future:failure(msg)
+        self.future:complete(container.result.failure(msg))
         if endsWith(msg, "Terminated") then
             self.status = 'stoped'
         else
@@ -63,7 +64,7 @@ local function task_continue(self, event)
             self.traceback = debug.traceback(thread, msg)
         end
     elseif coroutine.status(thread) == 'dead' then
-        self.future:submit(table.unpack(result, 2))
+        self.future:complete(container.result.success(table.unpack(result, 2)))
         self.status = 'dead'
     else
         local next_event = result[2]

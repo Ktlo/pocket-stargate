@@ -14,6 +14,7 @@ local keyring = require 'keyring'
 local filter = require 'filter'
 local audit = require 'audit'
 local random = require 'ccryptolib.random'
+local container = require 'container'
 
 local speaker = peripheral.find("speaker")
 if speaker then
@@ -823,8 +824,6 @@ if wiredModem then
     rpc.server_network(rpc.simple_commands(security), wiredModem, SECURITY_COMMAND)
 end
 
-local serializeOpts = { compact = true }
-
 local function stargateMessageExchanger(handler)
     local _, _, message = os.pullEvent('stargate_message_received')
     local request = textutils.unserialize(message)
@@ -832,7 +831,7 @@ local function stargateMessageExchanger(handler)
         local response = handler(request)
         if response then
             job.async(function()
-                stargate.sendStargateMessage(textutils.serialize(response, serializeOpts))
+                stargate.sendStargateMessage(tostring(container.datum(response, true)))
             end)
         end
     end
