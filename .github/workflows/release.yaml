@@ -20,7 +20,7 @@ jobs:
       - name: Install luamin
         run: npm install -g luamin
       - name: Minify some dependencies
-        run: cat minify.txt | while read line; do minify.py dependency $line; done
+        run: cat minify.txt | while read line; do python minify.py dependency $line; done
       - name: Build SGS
         run: python packer.py sgs
       - name: Build PSG
