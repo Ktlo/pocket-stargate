@@ -1,0 +1,22 @@
+<frame id="window" bg="lightGray">
+    <pane width="parent.w" height="1" bg="gray" />
+    <label x="parent.w/2-self.w/2" text="Input Number" />
+    <input id="input" x="2" y="3" width="parent.w - 2" type="number" />
+    <frame id="digits" x="3" y="5" width="19" height="7" bg="lightGray">
+        <button id="d0" x="1" y="1" width="3" text="0" />
+        <button id="d1" x="5" y="1" width="3" text="1" />
+        <button id="d2" x="9" y="1" width="3" text="2" />
+        <button id="d3" x="13" y="1" width="3" text="3" />
+        <button id="d4" x="17" y="1" width="3" text="4" />
+        <button id="d5" x="1" y="5" width="3" text="5" />
+        <button id="d6" x="5" y="5" width="3" text="6" />
+        <button id="d7" x="9" y="5" width="3" text="7" />
+        <button id="d8" x="13" y="5" width="3" text="8" />
+        <button id="d9" x="17" y="5" width="3" text="9" />
+    </frame>
+    <frame id="control" x="3" y="13" width="19" height="3" bg="lightGray">
+        <button id="done" x="1" width="7" text="Done" bg="green" />
+        <button id="back" x="9" width="7" text="Back" bg="red" />
+        <button id="erase" x="17" width="3" text="&lt;" />
+    </frame>
+</frame>

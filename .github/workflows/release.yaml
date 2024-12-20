@@ -14,6 +14,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 23
+      - name: Install luamin
+        run: npm install -g luamin
+      - name: Minify some dependencies
+        run: cat minify.txt | while read line; do minify.py dependency $line; done
       - name: Build SGS
         run: python packer.py sgs
       - name: Build PSG
@@ -28,13 +35,13 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            out/sgs.lua
-            out/install_sgs.lua
-            out/psg.lua
-            out/install_psg.lua
-            out/ssg.lua
-            out/install_ssg.lua
-            out/tsg.lua
-            out/install_tsg.lua
-            out/portal.lua
-            out/install_portal.lua
+            out/executables/sgs.lua
+            out/executables/install_sgs.lua
+            out/executables/psg.lua
+            out/executables/install_psg.lua
+            out/executables/ssg.lua
+            out/executables/install_ssg.lua
+            out/executables/tsg.lua
+            out/executables/install_tsg.lua
+            out/executables/portal.lua
+            out/executables/install_portal.lua

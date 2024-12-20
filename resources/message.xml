@@ -1,0 +1,7 @@
+<frame id="window" bg="lightBlue">
+    <pane width="parent.w" height="1" bg="blue" />
+    <label id="title" x="(parent.w - self.w)/2" fg="white" text="" />
+    <button id="close" x="parent.w" width="1" height="1" bg="red" fg="white" text="X" />
+    <label id="content" x="2" y="3" width="parent.w - 2" height="parent.h - 4" bg="white"
+        fg="black" />
+</frame>

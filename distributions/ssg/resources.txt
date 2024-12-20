@@ -1,1 +1,4 @@
 ssg.xml
+alert.xml
+number.xml
+address.xml

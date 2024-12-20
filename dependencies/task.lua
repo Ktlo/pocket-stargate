@@ -104,6 +104,8 @@ end
 
 local task_meta = {
     __index = task_methods;
+    __classes = { waitable = true };
+    __name = 'task';
 }
 
 -----------------------------------------------

@@ -1,5 +1,6 @@
 <frame id="root">
     <label x="(parent.w - self.w)/2" y="parent.h/2" text="No stargate found"/>
+    <button x="parent.w - 6" y="parent.h - 3" width="6" text="Keys" onClick="openVault"/>
     <frame id="main" visible="false">
         <menubar onChange="selectFrame" width="parent.w">
             <item text="Addressbook"/>
@@ -129,36 +130,5 @@
         <button x="10" y="parent.h - 7" width="7" bg="red" text="Del" onClick="forget"/>
         <button id="password" x="2" y="parent.h - 3" width="14" onClick="setPassword"/>
         <button x="parent.w - self.w" y="parent.h - 3" text="Back" width="6" onClick="exitVault"/>
-    </frame>
-    <frame id="message" x="2" y="(parent.h - self.h)/ 2" width="parent.w - 2" height="11" bg="lightBlue" shadowColor="cyan" movable="true" visible="false">
-        <pane width="parent.w" height="1" bg="blue"/>
-        <label x="(parent.w - self.w)/2" fg="white" text="Received Message"/>
-        <button x="parent.w" width="1" height="1" bg="red" fg="white" text="X" onClick="hideMessage"/>
-        <textfield id="content" x="2" y="3" width="parent.w - 2" height="parent.h - 4" bg="white" fg="black"/>
-    </frame>
-    <frame id="alert" x="2" y="(parent.h - self.h)/2" width="parent.w - 2" height="13" bg="orange" visible="false">
-        <pane width="parent.w" height="1" bg="red"/>
-        <label x="parent.w/2-self.w/2" fg="white" text="Attention!"/>
-        <textfield id="content" x="2" y="3" width="parent.w - 2" height="parent.h - 7" fg="black" bg="pink" enabled="false"/>
-        <button id="accept" x="3" y="parent.h-3" width="9" bg="green" text="" onClick="alertAccept"/>
-        <button id="cancel" x="parent.w - self.w - 1" y="parent.h-3" width="9" bg="blue" text="" onClick="alertCancel"/>
-    </frame>
-    <frame id="passwd" x="2" y="(parent.h - self.h)/2" width="parent.w - 2" height="8" bg="orange" visible="false">
-        <pane width="parent.w" height="1" bg="red"/>
-        <label x="parent.w/2-self.w/2" fg="white" text="Input Password"/>
-        <input id="password" x="2" y="3" width="parent.w - 2" type="password"/>
-        <button x="3" y="parent.h-3" width="9" bg="green" text="Done" onClick="passwordDone"/>
-        <button x="parent.w - self.w - 1" y="parent.h-3" width="9" bg="blue" text="Cancel" onClick="passwordCancel"/>
-    </frame>
-    <frame id="chpass" x="2" y="(parent.h - self.h)/2" width="parent.w - 2" height="12" bg="lightBlue" visible="false">
-        <pane width="parent.w" height="1" bg="blue"/>
-        <label x="parent.w/2-self.w/2" fg="white" text="Change Password"/>
-        <label id="chpassmsg" x="parent.w/2-self.w/2" y="3" fg="red" text=""/>
-        <label x="2" y="5" text="New"/>
-        <input id="password" x="10" y="5" width="parent.w - self.x" type="password"/>
-        <label x="2" y="7" text="Confirm"/>
-        <input id="confirm" x="10" y="7" width="parent.w - self.x" type="password"/>
-        <button x="3" y="parent.h-3" width="9" bg="green" text="Done" onClick="chpassDone"/>
-        <button x="parent.w - self.w - 1" y="parent.h-3" width="9" bg="cyan" text="Cancel" onClick="chpassCancel"/>
     </frame>
 </frame>

@@ -1,0 +1,77 @@
+<frame id="window" bg="lightGray">
+    <pane width="parent.w" height="1" bg="gray" />
+    <label x="parent.w/2-self.w/2" text="Input Address" fg="white" />
+    <frame id="symbols" x="2" y="3" height="1" width="25" bg="lightGray">
+        <label x="1" width="1" text="-" />
+        <label id="s1" x="2" width="2" fg="black" bg="white" text="" />
+        <label x="4" width="1" text="-" />
+        <label id="s2" x="5" width="2" fg="black" bg="white" text="" />
+        <label x="7" width="1" text="-" />
+        <label id="s3" x="8" width="2" fg="black" bg="white" text="" />
+        <label x="10" width="1" text="-" />
+        <label id="s4" x="11" width="2" fg="black" bg="white" text="" />
+        <label x="13" width="1" text="-" />
+        <label id="s5" x="14" width="2" fg="black" bg="white" text="" />
+        <label x="16" width="1" text="-" />
+        <label id="s6" x="17" width="2" fg="black" bg="white" text="" />
+        <label x="19" width="1" text="-" />
+        <label id="s7" x="20" width="2" fg="black" bg="white" text="" />
+        <label x="22" width="1" text="-" />
+        <label id="s8" x="23" width="2" fg="black" bg="white" text="" />
+        <label x="25" width="1" text="-" />
+    </frame>
+    <frame id="input" x="3" y="5" width="23" height="11" bg="lightGray">
+        <button id="v1" x="1" y="1" width="2" height="1" text="1" />
+        <button id="v2" x="4" y="1" width="2" height="1" text="2" />
+        <button id="v3" x="7" y="1" width="2" height="1" text="3" />
+        <button id="v4" x="10" y="1" width="2" height="1" text="4" />
+        <button id="v5" x="13" y="1" width="2" height="1" text="5" />
+        <button id="v6" x="16" y="1" width="2" height="1" text="6" />
+        <button id="v7" x="19" y="1" width="2" height="1" text="7" />
+        <button id="v8" x="22" y="1" width="2" height="1" text="8" />
+        <button id="v9" x="1" y="3" width="2" height="1" text="9" />
+        <button id="v10" x="4" y="3" width="2" height="1" text="10" />
+        <button id="v11" x="7" y="3" width="2" height="1" text="11" />
+        <button id="v12" x="10" y="3" width="2" height="1" text="12" />
+        <button id="v13" x="13" y="3" width="2" height="1" text="13" />
+        <button id="v14" x="16" y="3" width="2" height="1" text="14" />
+        <button id="v15" x="19" y="3" width="2" height="1" text="15" />
+        <button id="v16" x="22" y="3" width="2" height="1" text="16" />
+        <button id="v17" x="1" y="5" width="2" height="1" text="17" />
+        <button id="v18" x="4" y="5" width="2" height="1" text="18" />
+        <button id="v19" x="7" y="5" width="2" height="1" text="19" />
+        <button id="v20" x="10" y="5" width="2" height="1" text="20" />
+        <button id="v21" x="13" y="5" width="2" height="1" text="21" />
+        <button id="v22" x="16" y="5" width="2" height="1" text="22" />
+        <button id="v23" x="19" y="5" width="2" height="1" text="23" />
+        <button id="v24" x="22" y="5" width="2" height="1" text="24" />
+        <button id="v25" x="1" y="7" width="2" height="1" text="25" />
+        <button id="v26" x="4" y="7" width="2" height="1" text="26" />
+        <button id="v27" x="7" y="7" width="2" height="1" text="27" />
+        <button id="v28" x="10" y="7" width="2" height="1" text="28" />
+        <button id="v29" x="13" y="7" width="2" height="1" text="29" />
+        <button id="v30" x="16" y="7" width="2" height="1" text="30" />
+        <button id="v31" x="19" y="7" width="2" height="1" text="31" />
+        <button id="v32" x="22" y="7" width="2" height="1" text="32" />
+        <button id="v33" x="1" y="9" width="2" height="1" text="33" />
+        <button id="v34" x="4" y="9" width="2" height="1" text="34" />
+        <button id="v35" x="7" y="9" width="2" height="1" text="35" />
+        <button id="v36" x="10" y="9" width="2" height="1" text="36" />
+        <button id="v37" x="13" y="9" width="2" height="1" text="37" />
+        <button id="v38" x="16" y="9" width="2" height="1" text="38" />
+        <button id="v39" x="19" y="9" width="2" height="1" text="39" />
+        <button id="v40" x="22" y="9" width="2" height="1" text="40" />
+        <button id="v41" x="1" y="11" width="2" height="1" text="41" />
+        <button id="v42" x="4" y="11" width="2" height="1" text="42" />
+        <button id="v43" x="7" y="11" width="2" height="1" text="43" />
+        <button id="v44" x="10" y="11" width="2" height="1" text="44" />
+        <button id="v45" x="13" y="11" width="2" height="1" text="45" />
+        <button id="v46" x="16" y="11" width="2" height="1" text="46" />
+        <button id="v47" x="19" y="11" width="2" height="1" text="47" />
+        <button id="erase" x="22" y="11" width="2" height="1" text="&lt;-" />
+    </frame>
+    <frame id="control" x="5" y="17" width="19" height="3" bg="lightGray">
+        <button id="done" x="1" width="8" text="Done" bg="gray" />
+        <button id="back" x="12" width="8" text="Back" bg="red" />
+    </frame>
+</frame>

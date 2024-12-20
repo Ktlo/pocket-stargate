@@ -39,6 +39,8 @@ end
 
 local job_meta = {
     __index = job_methods;
+    __classes = { waitable = true };
+    __name = 'task';
 }
 
 local function job_root(job)
@@ -138,12 +140,15 @@ function job_methods:cancel()
     self.task:stop()
 end
 
+--- @async
 function job_methods:await()
     return self.future:get():unwrap()
 end
 
+--- @async
 function job_methods:await_timeout(timeout)
-    if concurrent.wait_timeout(self, timeout) then
+    local result = concurrent.select(self, concurrent.timeout(timeout))
+    if result == self then
         return true, self:await()
     else
         self:cancel()

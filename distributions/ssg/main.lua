@@ -22,6 +22,7 @@ local keys = require 'keys'
 local concurrent = require 'concurrent'
 local printer = require 'printer'
 local resources = require 'resources'
+local modal = require 'modal'
 
 local modem = peripheral.find("modem", function(_, modem) return not modem.isWireless() end)
 if not modem then
@@ -56,16 +57,6 @@ basalt.setVariable("selectFrame", function(self)
             tab:hide()
         end
     end
-end)
-
-local alertResult, alert
-
-basalt.setVariable("alertAccept", function()
-    alertResult:complete(true)
-end)
-
-basalt.setVariable("alertCancel", function()
-    alertResult:complete(false)
 end)
 
 local selectedFilterListProperty = concurrent.property(1)
@@ -117,77 +108,10 @@ basalt.setVariable("deny", function()
     end)
 end)
 
-basalt.setVariable("inputDigit", function(button)
-    local input = dom { 'root', 'number', 'input' }
-    local digit = button:getValue()
-    input:setValue(tostring(tonumber(input:getValue()..digit)))
-    input:setFocus()
-end)
-
-basalt.setVariable("numberErase", function()
-    local input = dom { 'root', 'number', 'input' }
-    local value = tostring(input:getValue())
-    if #value ~= 0 then
-        input:setValue(value:sub(1, -2))
-    end
-    input:setFocus()
-end)
-
-local numberDialogResult
-
-basalt.setVariable("numberDone", function()
-    local input = dom { 'root', 'number', 'input' }
-    local value = input:getValue()
-    numberDialogResult:complete(tonumber(value) or 0)
-end)
-
-basalt.setVariable("numberBack", function()
-    numberDialogResult:complete(nil)
-end)
-
-local inputAddressProperty = concurrent.property({})
-
-basalt.setVariable("inputSymbol", function(element)
-    local symbol = tonumber(element:getValue())
-    local address = inputAddressProperty.value
-    local length = #address
-    if length < 8 then
-        for i=1, length do
-            if address[i] == symbol then
-                return
-            end
-        end
-        local newAddress = { table.unpack(address) }
-        newAddress[length + 1] = symbol
-        inputAddressProperty:set(newAddress)
-    end
-end)
-
-basalt.setVariable("eraseSymbol", function()
-    local address = inputAddressProperty.value
-    local length = #address
-    if length > 0 then
-        local newAddress = { table.unpack(address, 1, length - 1) }
-        inputAddressProperty:set(newAddress)
-    end
-end)
-
-local addressDialogResult
-
-basalt.setVariable("addressDone", function()
-    addressDialogResult:complete(inputAddressProperty.value)
-end)
-
-basalt.setVariable("addressBack", function()
-    addressDialogResult:complete(nil)
-end)
-
-local inputAddressDialog, inputNumberDialog
-
 basalt.setVariable("addAddressToFilter", function()
     local listType = selectedFilterListProperty.value
     job.async(function()
-        local newAddress = inputAddressDialog():await()
+        local newAddress = modal.address()
         if newAddress then
             if listType == 1 then
                 client.allowlistAdd(newAddress)
@@ -250,7 +174,7 @@ end
 basalt.setVariable("setEnergyTarget", function()
     local init = tonumber(energyTargetElement:getValue():sub(1, -4))
     job.async(function()
-        local result = inputNumberDialog(init):await()
+        local result = modal.number(init or 0)
         if result then
             client.setEnergyTarget(result)
         end
@@ -260,7 +184,7 @@ end)
 basalt.setVariable("setNetworkId", function()
     local init = tonumber(networkIdElement:getValue())
     job.async(function()
-        local result = inputNumberDialog(init):await()
+        local result = modal.number(init or 0)
         if result then
             client.setNetwork(result)
         end
@@ -345,8 +269,10 @@ local auditEventDialog
 basalt.setVariable("auditShowEvent", function()
     local list = getAuditListElement()
     local i = list:getItemIndex()
-    local item = list:getItem(i)
-    auditEventDialog(item.args[1])
+    if i then
+        local item = list:getItem(i)
+        auditEventDialog(item.args[1])
+    end
 end)
 
 basalt.setVariable("auditPrevPage", function()
@@ -376,7 +302,7 @@ basalt.setVariable("printAuditEvent", function()
             if ok then
                 break
             end
-            local continue = alert(err, "Continue", "Cancel"):await()
+            local continue = modal.alert(err, "Continue", "Cancel")
             if not continue then
                 context:cancel()
                 break
@@ -400,7 +326,7 @@ basalt.setVariable("printAuditPage", function()
             if ok then
                 break
             end
-            local continue = alert(err, "Continue", "Cancel"):await()
+            local continue = modal.alert(err, "Continue", "Cancel")
             if not continue then
                 context:cancel()
                 break
@@ -415,39 +341,6 @@ basalt.createFrame()
     :setTheme(THEME)
     :addLayoutFromString(resources.load("ssg.xml"))
 
-local mainFrame = dom { 'root', 'main' }
-local alertFrame = dom { 'root', 'alert' }
-local alertContentElement = dom { 'root', 'alert', 'content' }
-local alertAcceptElement = dom { 'root', 'alert', 'control', 'accept' }
-local alertCancelElement = dom { 'root', 'alert', 'control', 'cancel' }
-
-local function showOnText(element, text)
-    if text then
-        element:setText(text)
-        element:show()
-    else
-        element:hide()
-    end
-end
-
-function alert(message, accept, cancel)
-    alertContentElement:setText(message)
-    showOnText(alertAcceptElement, accept)
-    showOnText(alertCancelElement, cancel)
-    local j = job.async(function()
-        alertResult = concurrent.future()
-        alertFrame:show()
-        mainFrame:disable()
-        return alertResult:get()
-    end)
-    j:finnalize(function()
-        alertResult = nil
-        alertFrame:hide()
-        mainFrame:enable()
-    end)
-    return j
-end
-
 job.livedata.subscribe(selectedFilterListProperty, function(index)
     local allowlist = dom { 'root', 'main', 'filter', 'allowlist' }
     local denylist = dom { 'root', 'main', 'filter', 'denylist' }
@@ -460,95 +353,11 @@ job.livedata.subscribe(selectedFilterListProperty, function(index)
     end
 end)
 
-local addressDialogWindow = dom { 'root', 'address' }
-local numberDialogWindow = dom { 'root', 'number' }
 auditEventWindow = dom { 'root', 'event' }
 
 if printer.exists() then
     auditEventWindow:getObject('control'):getObject('print'):show()
     dom { 'root', 'main', 'audit', 'op', 'print' }:show()
-end
-
-job.livedata.subscribe(inputAddressProperty, function(value)
-    local input = addressDialogWindow:getObject('input')
-    for i=1, 8 do
-        local display = input:getObject("s"..i)
-        local symbol = value[i]
-        if symbol then
-            display:setText(string.format("%02d", symbol))
-        else
-            display:setText("")
-        end
-    end
-    local doneButton = addressDialogWindow:getObject("control"):getObject("done")
-    if #value >= 6 then
-        doneButton:setBackground(colors.green)
-        doneButton:enable()
-    else
-        doneButton:setBackground(colors.gray)
-        doneButton:disable()
-    end
-end)
-
-job.async(function()
-    while true do
-        local _, text = os.pullEvent('paste')
-        if addressDialogWindow:isVisible() then
-            local address = { table.unpack(inputAddressProperty.value) }
-            local symbols = {}
-            for _, symbol in ipairs(address) do
-                symbols[symbol] = true
-            end
-            for value in text:gmatch("%d+") do
-                local symbol = assert(tonumber(value))
-                if symbol > 0 and symbol < 48 and not symbols[symbol] then
-                    symbols[symbol] = true
-                    table.insert(address, symbol)
-                    if #address >= 8 then
-                        break
-                    end
-                end
-            end
-            inputAddressProperty:set(address)
-        end
-    end
-end)
-
-inputAddressDialog = function()
-    local main = dom { 'root', 'main' }
-    local task = job.async(function()
-        addressDialogResult = concurrent.future()
-        inputAddressProperty:set({})
-        main:disable()
-        addressDialogWindow:show()
-        addressDialogWindow:setFocus()
-        return addressDialogResult:get()
-    end)
-    task:finnalize(function()
-        addressDialogWindow:hide()
-        main:enable()
-        addressDialogResult = nil
-    end)
-    return task
-end
-
-inputNumberDialog = function(initial)
-    local main = dom { 'root', 'main' }
-    local input = numberDialogWindow:getObject('input')
-    local task = job.async(function()
-        numberDialogResult = concurrent.future()
-        input:setValue(initial)
-        main:disable()
-        numberDialogWindow:show()
-        numberDialogWindow:setFocus()
-        return numberDialogResult:get()
-    end)
-    task:finnalize(function()
-        numberDialogWindow:hide()
-        main:enable()
-        numberDialogResult = nil
-    end)
-    return task
 end
 
 auditEventDialog = function(event)

@@ -13,10 +13,14 @@ args_parser = argparse.ArgumentParser(
 args_parser.add_argument('distribution')
 args = args_parser.parse_args()
 
-try:
-    os.mkdir("out")
-except:
-    pass
+def safemkdir(dir):
+    try:
+        os.mkdir(dir)
+    except:
+        pass
+
+safemkdir("out")
+safemkdir("out/executables")
 
 distribution = args.distribution
 
@@ -62,7 +66,7 @@ def include_resources(file, resources):
         file.write(encoded_resource)
         file.write("\";\n")
 
-with open(f"out/{distribution}.lua", 'w', newline='') as file:
+with open(f"out/executables/{distribution}.lua", 'w', newline='') as file:
     base64header(file)
     file.write("local modules = {\n")
     for dependency in scope.dependencies:
@@ -106,14 +110,14 @@ function typeY()
 end
 """
 
-with open(f"out/install_{distribution}.lua", 'w', newline='') as file:
+with open(f"out/executables/install_{distribution}.lua", 'w', newline='') as file:
     base64header(file)
     file.write(installer_functions_text)
     file.write("EXTRAS = {\n")
     include_resources(file, scope.extras)
     file.write("}\n")
     file.write("PROGRAM = ([[")
-    dependency_text = load_resource(deps.Resource(f"out/{distribution}.lua", distribution, f"{distribution}.lua"))
+    dependency_text = load_resource(deps.Resource(f"out/executables/{distribution}.lua", distribution, f"{distribution}.lua"))
     file.write(dependency_text.decode('utf-8').replace("[[", "<$<").replace("]]", ">$>"))
     file.write("]]):gsub(\"<$<\", \"[[\"):gsub(\">$>\", \"]]\")\n")
     file.write("local entrypoint = base64.decode \"")

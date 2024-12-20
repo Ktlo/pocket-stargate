@@ -1,16 +1,23 @@
-local table, math, string = table, math, string
+local table, math, string, check = table, math, string, require 'check'
 local table_unpack, table_insert, table_concat = table.unpack, table.insert, table.concat
 local error, setmetatable, tostring, type = error, setmetatable, tostring, type
 local math_huge, math_floor = math.huge, math.floor
 local string_match, string_gsub, string_format = string.match, string.gsub, string.format
+local expect = check.expect
 
 local library = {}
 
 ----------------------------------------------------
 
+--- @class (exact) result
+--- @field success boolean
+--- @field value any
 local result_methods = {}
 
+--- @param self result
+--- @return any ...
 function result_methods:unwrap()
+    expect(1, self, 'result')
     local value = self.value
     if self.success then
         return table_unpack(value)
@@ -19,7 +26,13 @@ function result_methods:unwrap()
     end
 end
 
+--- @param self result
+--- @return boolean ok
+--- @return any | nil err
+--- @return any ...
+--- @nodiscard
 function result_methods:extract()
+    expect(1, self, 'result')
     local value = self.value
     if self.success then
         return true, table_unpack(value)
@@ -30,26 +43,37 @@ end
 
 local result_meta = {
     __index = result_methods;
+    __name = 'result';
 }
 
+local function result_init(success, value)
+    local result = {
+        success = success;
+        value = value;
+    }
+    return setmetatable(result, result_meta)
+end
+
+--- @param ... any
+--- @return result
+--- @nodiscard
 local function result_success(...)
-    local result = {
-        success = true;
-        value = { ... };
-    }
-    return setmetatable(result, result_meta)
+    return result_init(true, { ... })
 end
 
+--- @param err any
+--- @return result
+--- @nodiscard
 local function result_failure(err)
-    local result = {
-        success = false;
-        value = err;
-    }
-    return setmetatable(result, result_meta)
+    return result_init(false, err)
 end
 
+--- @param action function
+--- @param ... any
+--- @return result
 local function result_catching(action, ...)
-    local r = { action(...) }
+    expect(1, action, 'function')
+    local r = { pcall(action, ...) }
     if r[1] then
         return result_success(table_unpack(r, 2))
     else
@@ -119,7 +143,7 @@ local function datum_tostring(self)
         return "{}"
     end
     strings[#strings] = '}'
-    return table.concat(strings)
+    return table_concat(strings)
 end
 
 local function datum_eq(a, b)
@@ -143,7 +167,13 @@ local datum_meta = {
 }
 
 local datum_create
+
+--- @param value table
+--- @param recursive? boolean
+--- @return table
 function datum_create(value, recursive)
+    expect(1, value, 'table')
+    expect(2, recursive, 'boolean', 'nil')
     local result = setmetatable(value, datum_meta)
     if recursive then
         for _, child in pairs(value) do

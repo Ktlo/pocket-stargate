@@ -91,105 +91,6 @@
             </frame>
         </frame>
     </frame>
-    <frame id="number" x="parent.w/2-self.w/2" y="parent.h/2-self.h/2" width="23" height="16" bg="lightGray" visible="false">
-        <pane width="parent.w" height="1" bg="gray"/>
-        <label x="parent.w/2-self.w/2" text="Input Number"/>
-        <input id="input" x="2" y="3" width="parent.w - 2" type="number"/>
-        <frame id="digits" x="3" y="5" width="19" height="7" bg="lightGray">
-            <button x="1" y="1" width="3" text="0" onClick="inputDigit"/>
-            <button x="5" y="1" width="3" text="1" onClick="inputDigit"/>
-            <button x="9" y="1" width="3" text="2" onClick="inputDigit"/>
-            <button x="13" y="1" width="3" text="3" onClick="inputDigit"/>
-            <button x="17" y="1" width="3" text="4" onClick="inputDigit"/>
-            <button x="1" y="5" width="3" text="5" onClick="inputDigit"/>
-            <button x="5" y="5" width="3" text="6" onClick="inputDigit"/>
-            <button x="9" y="5" width="3" text="7" onClick="inputDigit"/>
-            <button x="13" y="5" width="3" text="8" onClick="inputDigit"/>
-            <button x="17" y="5" width="3" text="9" onClick="inputDigit"/>
-        </frame>
-        <frame id="control" x="3" y="13" width="19" height="3" bg="lightGray">
-            <button x="1" width="7" text="Done" bg="green" onClick="numberDone"/>
-            <button x="9" width="7" text="Back" bg="red" onClick="numberBack"/>
-            <button x="17" width="3" text="<" onClick="numberErase"/>
-        </frame>
-    </frame>
-    <frame id="address" x="parent.w/2-self.w/2" y="parent.h/2-self.h/2" bg="lightGray" width="27" height="20" visible="false">
-        <pane width="parent.w" height="1" bg="gray"/>
-        <label x="parent.w/2-self.w/2" text="Input Address"/>
-        <frame id="input" x="2" y="3" height="1" width="25" bg="lightGray">
-            <label x="1" width="1" text="-"/>
-            <label id="s1" x="2" width="2" fg="black" bg="white" text=""/>
-            <label x="4" width="1" text="-"/>
-            <label id="s2" x="5" width="2" fg="black" bg="white" text=""/>
-            <label x="7" width="1" text="-"/>
-            <label id="s3" x="8" width="2" fg="black" bg="white" text=""/>
-            <label x="10" width="1" text="-"/>
-            <label id="s4" x="11" width="2" fg="black" bg="white" text=""/>
-            <label x="13" width="1" text="-"/>
-            <label id="s5" x="14" width="2" fg="black" bg="white" text=""/>
-            <label x="16" width="1" text="-"/>
-            <label id="s6" x="17" width="2" fg="black" bg="white" text=""/>
-            <label x="19" width="1" text="-"/>
-            <label id="s7" x="20" width="2" fg="black" bg="white" text=""/>
-            <label x="22" width="1" text="-"/>
-            <label id="s8" x="23" width="2" fg="black" bg="white" text=""/>
-            <label x="25" width="1" text="-"/>
-        </frame>
-        <frame id="symbols" x="3" y="5" width="23" height="11" bg="lightGray">
-            <button x="1" y="1" width="2" height="1" text="1" onClick="inputSymbol"/>
-            <button x="4" y="1" width="2" height="1" text="2" onClick="inputSymbol"/>
-            <button x="7" y="1" width="2" height="1" text="3" onClick="inputSymbol"/>
-            <button x="10" y="1" width="2" height="1" text="4" onClick="inputSymbol"/>
-            <button x="13" y="1" width="2" height="1" text="5" onClick="inputSymbol"/>
-            <button x="16" y="1" width="2" height="1" text="6" onClick="inputSymbol"/>
-            <button x="19" y="1" width="2" height="1" text="7" onClick="inputSymbol"/>
-            <button x="22" y="1" width="2" height="1" text="8" onClick="inputSymbol"/>
-            <button x="1" y="3" width="2" height="1" text="9" onClick="inputSymbol"/>
-            <button x="4" y="3" width="2" height="1" text="10" onClick="inputSymbol"/>
-            <button x="7" y="3" width="2" height="1" text="11" onClick="inputSymbol"/>
-            <button x="10" y="3" width="2" height="1" text="12" onClick="inputSymbol"/>
-            <button x="13" y="3" width="2" height="1" text="13" onClick="inputSymbol"/>
-            <button x="16" y="3" width="2" height="1" text="14" onClick="inputSymbol"/>
-            <button x="19" y="3" width="2" height="1" text="15" onClick="inputSymbol"/>
-            <button x="22" y="3" width="2" height="1" text="16" onClick="inputSymbol"/>
-            <button x="1" y="5" width="2" height="1" text="17" onClick="inputSymbol"/>
-            <button x="4" y="5" width="2" height="1" text="18" onClick="inputSymbol"/>
-            <button x="7" y="5" width="2" height="1" text="19" onClick="inputSymbol"/>
-            <button x="10" y="5" width="2" height="1" text="20" onClick="inputSymbol"/>
-            <button x="13" y="5" width="2" height="1" text="21" onClick="inputSymbol"/>
-            <button x="16" y="5" width="2" height="1" text="22" onClick="inputSymbol"/>
-            <button x="19" y="5" width="2" height="1" text="23" onClick="inputSymbol"/>
-            <button x="22" y="5" width="2" height="1" text="24" onClick="inputSymbol"/>
-            <button x="1" y="7" width="2" height="1" text="25" onClick="inputSymbol"/>
-            <button x="4" y="7" width="2" height="1" text="26" onClick="inputSymbol"/>
-            <button x="7" y="7" width="2" height="1" text="27" onClick="inputSymbol"/>
-            <button x="10" y="7" width="2" height="1" text="28" onClick="inputSymbol"/>
-            <button x="13" y="7" width="2" height="1" text="29" onClick="inputSymbol"/>
-            <button x="16" y="7" width="2" height="1" text="30" onClick="inputSymbol"/>
-            <button x="19" y="7" width="2" height="1" text="31" onClick="inputSymbol"/>
-            <button x="22" y="7" width="2" height="1" text="32" onClick="inputSymbol"/>
-            <button x="1" y="9" width="2" height="1" text="33" onClick="inputSymbol"/>
-            <button x="4" y="9" width="2" height="1" text="34" onClick="inputSymbol"/>
-            <button x="7" y="9" width="2" height="1" text="35" onClick="inputSymbol"/>
-            <button x="10" y="9" width="2" height="1" text="36" onClick="inputSymbol"/>
-            <button x="13" y="9" width="2" height="1" text="37" onClick="inputSymbol"/>
-            <button x="16" y="9" width="2" height="1" text="38" onClick="inputSymbol"/>
-            <button x="19" y="9" width="2" height="1" text="39" onClick="inputSymbol"/>
-            <button x="22" y="9" width="2" height="1" text="40" onClick="inputSymbol"/>
-            <button x="1" y="11" width="2" height="1" text="41" onClick="inputSymbol"/>
-            <button x="4" y="11" width="2" height="1" text="42" onClick="inputSymbol"/>
-            <button x="7" y="11" width="2" height="1" text="43" onClick="inputSymbol"/>
-            <button x="10" y="11" width="2" height="1" text="44" onClick="inputSymbol"/>
-            <button x="13" y="11" width="2" height="1" text="45" onClick="inputSymbol"/>
-            <button x="16" y="11" width="2" height="1" text="46" onClick="inputSymbol"/>
-            <button x="19" y="11" width="2" height="1" text="47" onClick="inputSymbol"/>
-            <button x="22" y="11" width="2" height="1" text="<-" onClick="eraseSymbol"/>
-        </frame>
-        <frame id="control" x="5" y="17" width="19" height="3" bg="lightGray">
-            <button id="done" x="1" width="8" text="Done" bg="gray" onClick="addressDone"/>
-            <button x="12" width="8" text="Back" bg="red" onClick="addressBack"/>
-        </frame>
-    </frame>
     <frame id="event" visible="false">
         <pane width="parent.w" height="1" bg="blue"/>
         <label x="parent.w/2-self.w/2" fg="white" text="Audit Event"/>
@@ -198,16 +99,6 @@
         <frame id="control" x="2" y="parent.h - 3" width="parent.w - 2" height="3">
             <button id="print" x="2" text="Print" onClick="printAuditEvent" visible="false"/>
             <button x="parent.w - self.w" text="Back" onClick="auditEventBack"/>
-        </frame>
-    </frame>
-    <frame id="alert" x="parent.w/2-self.w/2" y="parent.h/2-self.h/2" bg="lightGray" width="30" height="12" visible="false">
-        <pane width="parent.w" height="1" bg="gray"/>
-        <label id="title" x="parent.w/2-self.w/2" text="Alert"/>
-        <pane x="2" y="3" width="parent.w - 2" height="parent.h - 7" bg="white"/>
-        <label id="content" x="2" y="3" width="parent.w - 2" height="parent.h - 7" bg="white"/>
-        <frame id="control" x="2" y="parent.h - 3" width="parent.w - 2" height="3" bg="lightGray">
-            <button id="accept" x="2" text="" onClick="alertAccept"/>
-            <button id="cancel" x="parent.w - self.w" bg="red" text="" onClick="alertCancel"/>
         </frame>
     </frame>
 </frame>

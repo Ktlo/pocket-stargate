@@ -20,12 +20,12 @@ local keys = require 'keys'
 local concurrent = require 'concurrent'
 local resources = require 'resources'
 local container = require 'container'
+local modal = require 'modal'
 
 local modem = peripheral.find("modem", function(_, modem) return modem.isWireless() end) or peripheral.find("modem")
 if not modem then
     error "No modem found; exiting..."
 end
-modem = peripheral.getName(modem)
 
 settings.define("psg.fastDialMode", {
     description = "Dial as fast as possible",
@@ -38,13 +38,15 @@ local fastDialMode = fastDialModeInit
 
 local stargate = rpc.client_network(modem, CHANNEL_COMMAND, TIMEOUT)
 
+local othersideResponses = concurrent.channel()
+
 local function othersideExchanger(request)
     job.async(function()
         local message = tostring(container.datum(request, true))
         pcall(stargate.tell, message)
     end)
     while true do
-        local _, response = os.pullEvent('otherside_respond')
+        local response = othersideResponses:recv()
         if rpc.is_response(request, response) then
             return response
         end
@@ -234,56 +236,12 @@ basalt.setVariable("reset", function()
     job.async(stargate.disconnect)
 end)
 
-basalt.setVariable("hideMessage", function()
-    (dom { 'root', 'message' }):hide()
-end)
-
 basalt.setVariable("tell", function()
     local message = dom { 'root', 'main', 'stats', 'status', 'message' }
     local value = table.concat(message:getLines(), '\n')
     job.async(function()
         stargate.tell(value)
     end)
-end)
-
-local alertResult
-
-basalt.setVariable("alertAccept", function()
-    alertResult:complete(true)
-end)
-
-basalt.setVariable("alertCancel", function()
-    alertResult:complete(false)
-end)
-
-local passwdResult, passwdPasswordElement
-
-basalt.setVariable("passwordDone", function()
-    passwdResult:complete(passwdPasswordElement:getValue())
-end)
-
-basalt.setVariable("passwordCancel", function()
-    passwdResult:complete(nil)
-end)
-
-local chpassResult, chpassmsgElement, chpassPasswordElement, chpassConfirmElement
-
-basalt.setVariable("chpassDone", function()
-    local password = chpassPasswordElement:getValue()
-    local confirm = chpassConfirmElement:getValue()
-    if password ~= confirm then
-        job.async(function()
-            chpassmsgElement:setText("Passwords not equal!")
-            sleep(5)
-            chpassmsgElement:setText("")
-        end)
-        return
-    end
-    chpassResult:submit(password)
-end)
-
-basalt.setVariable("chpassCancel", function()
-    chpassResult:submit(nil)
 end)
 
 local function synchPasswordButtonText()
@@ -297,23 +255,21 @@ local function synchPasswordButtonText()
     passwordButtonElement:setText(passwordButtonText)
 end
 
-local passwd, alert, chpass
-
 basalt.setVariable("setPassword", function(button)
     job.async(function()
         if vault.is_encrypted() then
-            local password = passwd()
+            local password = modal.passwd()
             if not password then
                 return
             end
             local ok, reason = vault.decrypt_key(password)
             if not ok then
-                alert({"Failed to decrypt:", reason}, nil, "OK")
+                modal.alert({"Failed to decrypt:", reason}, nil, "OK")
                 return
             end
             synchPasswordButtonText()
         else
-            local password = chpass()
+            local password = modal.chpass()
             if not password then
                 return
             end
@@ -338,85 +294,6 @@ basalt.createFrame()
     :addLayoutFromString(resources.load("psg.xml"))
 
 local mainFrame = dom { 'root', 'main' }
-local alertFrame = dom { 'root', 'alert' }
-local alertContentElement = dom { 'root', 'alert', 'content' }
-local alertAcceptElement = dom { 'root', 'alert', 'accept' }
-local alertCancelElement = dom { 'root', 'alert', 'cancel' }
-
-function alert(text, accept, cancel)
-    alertContentElement:clear()
-    for _, line in ipairs(text) do
-        alertContentElement:addLine(line)
-    end
-    if accept then
-        alertAcceptElement:show()
-        alertAcceptElement:setText(accept)
-    else
-        alertAcceptElement:hide()
-    end
-    alertCancelElement:setText(cancel)
-    local j = job.async(function()
-        alertResult = concurrent.future()
-        alertFrame:show()
-        mainFrame:disable()
-        return alertResult:get()
-    end)
-    j:finnalize(function()
-        alertResult = nil
-        alertFrame:hide()
-        mainFrame:enable()
-    end)
-    return j:await()
-end
-
-local passwdFrame = dom { 'root', 'passwd' }
-passwdPasswordElement = dom { 'root', 'passwd', 'password' }
-
-function passwd()
-    passwdPasswordElement:setValue("")
-    local j = job.async(function()
-        passwdResult = concurrent.future()
-        passwdFrame:show()
-        mainFrame:disable()
-        passwdPasswordElement:setFocus()
-        return passwdResult:get()
-    end)
-    j:finnalize(function()
-        passwdResult = nil
-        passwdFrame:hide()
-        mainFrame:enable()
-        mainFrame:setFocus()
-        passwdPasswordElement:setValue("")
-    end)
-    return j:await()
-end
-
-local chpassFrame = dom { 'root', 'chpass' }
-chpassmsgElement = chpassFrame:getObject('chpassmsg')
-chpassPasswordElement = chpassFrame:getObject('password')
-chpassConfirmElement = chpassFrame:getObject('confirm')
-
-function chpass()
-    chpassmsgElement:setText("")
-    chpassPasswordElement:setValue("")
-    chpassConfirmElement:setValue("")
-    local j = job.async(function()
-        chpassResult = concurrent.future()
-        chpassFrame:show()
-        mainFrame:disable()
-        chpassPasswordElement:setFocus()
-        return chpassResult:get()
-    end)
-    j:finnalize(function()
-        chpassResult = nil
-        chpassFrame:hide()
-        mainFrame:enable()
-        mainFrame:setFocus()
-        chpassPasswordElement:setValue("")
-        chpassConfirmElement:setValue("")
-    end)
-    return j:await()
-end
 
 authKeysList = dom { 'root', 'vault', 'list' }
 
@@ -596,7 +473,7 @@ job.livedata.subscribe(shouldAuthorizeProperty, function(shouldAuthorize)
                 irisMessage = "Iris is opened, trust?"
                 acceptText = false
             end
-            local doOpen = alert(
+            local doOpen = modal.alert(
                 {
                     "Dest: ".. keys.fingerprint(message.key);
                     verificationMessage;
@@ -608,7 +485,7 @@ job.livedata.subscribe(shouldAuthorizeProperty, function(shouldAuthorize)
                 local key = vault.private_key()
                 if not key then
                     while true do
-                        local password = passwd()
+                        local password = modal.passwd()
                         if not password then
                             return
                         end
@@ -616,21 +493,21 @@ job.livedata.subscribe(shouldAuthorizeProperty, function(shouldAuthorize)
                         if key then
                             break
                         end
-                        alert({reason}, nil, "Retry")
+                        modal.alert({reason}, nil, "Retry")
                     end
                 end
                 local request = vault.make_auth_request(key, message.session)
                 ok, reason = otherside.auth(request)
                 if not ok then
-                    alert({"NOT AUTHORIZED:", reason}, false, "OK")
+                    modal.alert({"NOT AUTHORIZED:", reason}, false, "OK")
                 else
-                    alert({"Authorized!"}, false, "OK")
+                    modal.alert({"Authorized!"}, false, "OK")
                 end
             end
         elseif response:sub(-10) == "Terminated" then
             error("Terminated", 0)
         else
-            alert({"No response!", "Iris state is unknown!"}, false, "OK")
+            modal.alert({"No response!", "Iris state is unknown!"}, false, "OK")
         end
     end
 end)
@@ -644,6 +521,8 @@ local function spawnHaltTimeout()
 end
 
 local haltJob = spawnHaltTimeout()
+
+local messagesSemaphore = concurrent.semaphore(10)
 
 rpc.subscribe_network(modem, CHANNEL_EVENT, function(event, meta)
     local distance = meta.distance
@@ -664,13 +543,9 @@ rpc.subscribe_network(modem, CHANNEL_EVENT, function(event, meta)
         local message = data
         local decoded = textutils.unserialise(message)
         if _G.type(decoded) == 'table' and decoded.magic == 'rpc' then
-            os.queueEvent('otherside_respond', decoded)
+            othersideResponses:send(decoded)
         else
-            local messageFrame = dom { 'root', 'message' }
-            local content = dom { 'root', 'message', 'content' }
-            content:clear()
-            content:addLine(message)
-            messageFrame:show()
+            messagesSemaphore:with_try_lock(modal.message, "Received Message", message)
         end
     end
 end)

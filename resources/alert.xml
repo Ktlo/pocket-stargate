@@ -1,0 +1,7 @@
+<frame id="window" bg="orange">
+    <pane width="parent.w" height="1" bg="red" />
+    <label x="parent.w/2-self.w/2" fg="white" text="Attention!" />
+    <label id="content" x="2" y="3" width="parent.w - 2" height="parent.h - 7" fg="black" bg="pink" />
+    <button id="accept" x="3" y="parent.h-3" width="9" bg="green" text="" />
+    <button id="cancel" x="parent.w - self.w - 1" y="parent.h-3" width="9" bg="blue" text="" />
+</frame>
