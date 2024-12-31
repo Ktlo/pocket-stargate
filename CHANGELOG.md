@@ -1,3 +1,9 @@
+## v1.1.1 2024-12-31
+
+### Fixed
+- Annoing message pop up "No iris response!" even when there is no stargate nearby.
+- Some dialog windows will be shown in turn. That is, not at the same time. For example, if you receive 3 text messages at the same time, you will see them all in order you received them, one by one.
+
 ## v1.1.0 2024-12-13
 
 ### Added
