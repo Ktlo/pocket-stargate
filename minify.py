@@ -3,7 +3,7 @@
 import argparse
 import os
 import re
-from subprocess import Popen, PIPE, DEVNULL
+from subprocess import Popen, STDOUT, DEVNULL
 
 args_parser = argparse.ArgumentParser(
     prog="minifier",
@@ -50,7 +50,7 @@ match variant:
 out_file = f"{out_dir}/{resource}.lua"
 os.makedirs(os.path.dirname(out_file), exist_ok=True)
 
-with open(out_file, 'wb') as file:
-    handle = file.fileno()
-    process = Popen(['luamin', '-f', in_file], stdout=handle, stderr=DEVNULL, shell=True)
-    process.wait()
+with open(out_file, 'wb') as output:
+    with open(in_file) as input:
+        process = Popen(["luamin -c"], stdout=output, stderr=STDOUT, stdin=input, shell=True)
+        process.wait()

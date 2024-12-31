@@ -170,7 +170,7 @@ function library.run(action)
     local root = job_create(pool, action)
     root.task:start()
     pool:run()
-    root.future:get():unwrap()
+    root.future:get()
     local traces = root.traces or {}
     local traceback = root.task.traceback
     if traceback then
@@ -181,7 +181,7 @@ function library.run(action)
         local file = io.open(filename, 'w')
         if file then
             file:write("ERROR: ")
-            file:write(root.future.error)
+            file:write(select(2, root.future:get():extract()))
             file:write('\n')
             for i=#traces, 1, -1 do
                 local trace = traces[i]
