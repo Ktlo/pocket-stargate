@@ -1,3 +1,8 @@
+## v1.1.2 2024-01-01
+
+### Fixed
+- Program crash on attempt to authorize introduced by previous release.
+
 ## v1.1.1 2024-12-31
 
 ### Fixed
