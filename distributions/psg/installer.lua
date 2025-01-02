@@ -22,6 +22,6 @@ saveProgram()
 
 print("Files unpacked!")
 
-print("Your copy of Pocket Stargate is successfully installed!")
+print("Your copy of Pocket Stargate", VERSION, "is successfully installed!")
 print("You can modify \"addresses.conf\" now.")
 print("Execute \"psg\" command in order to run Pocket Stargate.")

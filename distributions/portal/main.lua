@@ -3,10 +3,10 @@ local COLUMNS = 2
 
 --------------------------------
 
-local concurrent = require 'concurrent'
-local rpc = require 'rpc'
-local job = require 'job'
-local shared = require 'shared'
+local concurrent = require 'ktlo.concurrent'
+local rpc = require 'ktlo.rpc'
+local job = require 'ktlo.job'
+local shared = require 'ktlo.shared'
 
 --------------------------------
 

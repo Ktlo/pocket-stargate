@@ -1,7 +1,7 @@
 local basalt = require 'basalt'
-local concurrent = require 'concurrent'
-local resources = require 'resources'
-local job = require 'job'
+local concurrent = require 'ktlo.concurrent'
+local resources = require 'ktlo.resources'
+local job = require 'ktlo.job'
 
 local library = {}
 

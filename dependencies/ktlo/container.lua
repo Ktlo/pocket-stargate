@@ -1,4 +1,4 @@
-local table, math, string, check = table, math, string, require 'check'
+local table, math, string, check = table, math, string, require 'ktlo.check'
 local table_unpack, table_insert, table_concat = table.unpack, table.insert, table.concat
 local error, setmetatable, tostring, type = error, setmetatable, tostring, type
 local math_huge, math_floor = math.huge, math.floor

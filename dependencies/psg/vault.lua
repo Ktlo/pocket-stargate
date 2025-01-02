@@ -6,8 +6,8 @@ local PRIVATE_KEY_FILE = "private_key.txt"
 local random = require 'ccryptolib.random'
 local ed25519 = require 'ccryptolib.ed25519'
 local blake3 = require 'ccryptolib.blake3'
-local base64 = require 'base64'
-local keyring = require 'keyring'
+local base64 = require 'ktlo.base64'
+local keyring = require 'psg.keyring'
 
 random.initWithTiming()
 

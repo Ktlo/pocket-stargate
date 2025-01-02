@@ -1,4 +1,4 @@
-local job = require 'job'
+local job = require 'ktlo.job'
 
 local rpc = {}
 

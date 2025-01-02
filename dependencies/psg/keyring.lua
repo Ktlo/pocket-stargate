@@ -3,7 +3,7 @@ local AUTHORIZED_KEYS_FILE = "keyring.txt"
 
 -------------------------------
 
-local base64 = require 'base64'
+local base64 = require 'ktlo.base64'
 
 local authorizedKeys = {}
 do

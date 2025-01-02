@@ -1,4 +1,4 @@
-local base64 = require 'base64'
+local base64 = require 'ktlo.base64'
 
 local lib = {}
 

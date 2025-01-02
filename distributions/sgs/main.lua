@@ -6,15 +6,17 @@ local DISCOVER_PERIOD = 1
 
 -------------------------------
 
-local concurrent = require 'concurrent'
-local job = require 'job'
-local rpc = require 'rpc'
-local spkey = require 'spkey'
-local keyring = require 'keyring'
-local filter = require 'filter'
-local audit = require 'audit'
+local concurrent = require 'ktlo.concurrent'
+local job = require 'ktlo.job'
+local rpc = require 'ktlo.rpc'
+local spkey = require 'psg.spkey'
+local keyring = require 'psg.keyring'
+local filter = require 'psg.filter'
+local audit = require 'psg.audit'
 local random = require 'ccryptolib.random'
-local container = require 'container'
+local container = require 'ktlo.container'
+
+local version = VERSION or 'dev'
 
 local speaker = peripheral.find("speaker")
 if speaker then
@@ -215,6 +217,7 @@ local function pollNewValues()
         feedbackCode = feedbackCode;
         feedbackName = feedbackName;
         energy = stargate.getEnergy();
+        energyCapacity = stargate.getEnergyCapacity();
         stargateEnergy = stargate.getStargateEnergy();
         openTime = stargate.getOpenTime();
         isWormholeOpen = stargate.isWormholeOpen();
@@ -225,6 +228,7 @@ local function buildDiscoverEvent()
     local result = {}
     local values = pollValuesProperty.value
     result.id = id
+    result.version = version
     result.galaxies = galaxies
     result.solarSystem = solarSystem
     result.tier = tier
@@ -242,6 +246,7 @@ local function buildDiscoverEvent()
     result.dialedAddress = dialedAddress;
     result.basic = {
         energy = values.energy;
+        energyCapacity = values.energyCapacity;
         energyTarget = energyTargetProperty.value;
         generation = mStargateGeneration;
         variant = mStargateVariant;
@@ -891,5 +896,7 @@ if not random.isInit() then
 end
 
 settings.save()
+
+print("Stargate Server (SGS)", version)
 
 end)

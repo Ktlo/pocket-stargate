@@ -1,5 +1,5 @@
-local concurrent = require 'concurrent'
-local container = require 'container'
+local concurrent = require 'ktlo.concurrent'
+local container = require 'ktlo.container'
 
 local function endsWith(str, ending)
     return str:sub(-#ending) == ending

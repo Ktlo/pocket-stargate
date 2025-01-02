@@ -1,6 +1,7 @@
 <frame id="root">
     <label x="(parent.w - self.w)/2" y="parent.h/2" text="No stargate found"/>
     <button x="parent.w - 6" y="parent.h - 3" width="6" text="Keys" onClick="openVault"/>
+    <label id="version" x="(parent.w - self.w)/2" y="parent.h" fg="gray"/>
     <frame id="main" visible="false">
         <menubar onChange="selectFrame" width="parent.w">
             <item text="Addressbook"/>
@@ -87,17 +88,25 @@
                 <label id="feedbackCode" x="resFedCodeLabel.x + resFedCodeLabel.w + 1" y="resFedCodeLabel.y" text="N/A" fg="blue"/>
                 <label id="resFedMsgLabel" x="2" y="feedbackCode.y + 2" text="Recent Feedback Message"/>
                 <label id="feedbackMessage" x="2" y="resFedMsgLabel.y + 1" width="parent.w - 2" bg="cyan" text="N/A"/>
+                <label id="version" x="(parent.w - self.w)/2" y="parent.h" fg="gray"/>
             </frame>
             <frame id="energy" y="2" height="parent.h - 1" visible="false">
-                <label x="(parent.w - self.w)/2" y="2" text="Interface" fg="gray"/>
-                <label id="energyLabel" x="2" y="3" text="Energy"/>
-                <label id="energy" x="energyLabel.x + energyLabel.w + 1" y="3" text="N/A" fg="blue"/>
-                <label x="(parent.w - self.w)/2" y="5" text="Stargate" fg="gray"/>
-                <label id="stargateEnergyLabel" x="2" y="6" text="Energy"/>
-                <label id="stargateEnergy" x="stargateEnergyLabel.x + stargateEnergyLabel.w + 1" y="6" text="N/A" fg="blue"/>
-                <label id="targetEnergyLabel" x="2" y="8" text="Target"/>
-                <label id="targetEnergy" x="targetEnergyLabel.x + targetEnergyLabel.w + 1" y="8" text="N/A" fg="blue"/>
-                <progressbar id="energyProgress" x="2" y="10" width="parent.w - 2" bg="red" progressColor="green"/>
+                <frame id="interface" x="2" y="2" width="parent.w - 2" height="6">
+                    <label x="(parent.w - self.w)/2" y="1" text="Interface" fg="gray"/>
+                    <label y="2" text="Energy"/>
+                    <label id="energy" x="10" y="2" text="N/A" fg="blue"/>
+                    <label y="4" text="Capacity"/>
+                    <label id="capacity" x="10" y="4" text="N/A" fg="blue"/>
+                    <progressbar id="progress" y="6" width="parent.w" bg="red" progressColor="green"/>
+                </frame>
+                <frame id="stargate" x="2" y="9" width="parent.w - 2" height="6">
+                    <label x="(parent.w - self.w)/2" y="1" text="Stargate" fg="gray"/>
+                    <label y="2" text="Energy"/>
+                    <label id="energy" x="8" y="2" text="N/A" fg="blue"/>
+                    <label y="4" text="Target"/>
+                    <label id="target" x="8" y="4" text="N/A" fg="blue"/>
+                    <progressbar id="progress" y="6" width="parent.w" bg="red" progressColor="green"/>
+                </frame>
             </frame>
             <frame id="status" y="2" height="parent.h - 1" visible="false">
                 <label id="isConnectedLabel" x="2" y="2" text="Connected"/>

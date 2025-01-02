@@ -16,13 +16,13 @@ local THEME = {
 }
 
 local basalt = require 'basalt'
-local job = require 'job'
-local rpc = require 'rpc'
-local keys = require 'keys'
-local concurrent = require 'concurrent'
-local printer = require 'printer'
-local resources = require 'resources'
-local modal = require 'modal'
+local job = require 'ktlo.job'
+local rpc = require 'ktlo.rpc'
+local keys = require 'psg.keys'
+local concurrent = require 'ktlo.concurrent'
+local printer = require 'psg.printer'
+local resources = require 'ktlo.resources'
+local modal = require 'psg.modal'
 
 local modem = peripheral.find("modem", function(_, modem) return not modem.isWireless() end)
 if not modem then

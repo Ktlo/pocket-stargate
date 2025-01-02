@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import subprocess
 import argparse
 import base64
 import deps
@@ -12,6 +13,7 @@ args_parser = argparse.ArgumentParser(
 
 args_parser.add_argument('distribution')
 args = args_parser.parse_args()
+distribution = args.distribution
 
 def safemkdir(dir):
     try:
@@ -21,8 +23,6 @@ def safemkdir(dir):
 
 safemkdir("out")
 safemkdir("out/executables")
-
-distribution = args.distribution
 
 scope = deps.build_distribution_scope(distribution)
 
@@ -36,7 +36,7 @@ def encode_text(text: bytes):
 
 loader_text = """
 local function loader(module)
-    if module == 'base64' then
+    if module == 'ktlo.base64' then
         return function() return base64 end
     else
         local text = modules[module]
@@ -66,7 +66,15 @@ def include_resources(file, resources):
         file.write(encoded_resource)
         file.write("\";\n")
 
+def get_version():
+    process = subprocess.Popen(["git describe --tags"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, shell=True)
+    stdout, _ = process.communicate()
+    return stdout.decode('utf-8').strip()
+
 with open(f"out/executables/{distribution}.lua", 'w', newline='') as file:
+    file.write("VERSION = '")
+    file.write(get_version())
+    file.write("'\n")
     base64header(file)
     file.write("local modules = {\n")
     for dependency in scope.dependencies:
@@ -111,6 +119,9 @@ end
 """
 
 with open(f"out/executables/install_{distribution}.lua", 'w', newline='') as file:
+    file.write("VERSION = '")
+    file.write(get_version())
+    file.write("'\n")
     base64header(file)
     file.write(installer_functions_text)
     file.write("EXTRAS = {\n")

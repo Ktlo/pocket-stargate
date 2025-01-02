@@ -46,11 +46,11 @@ def read_resources(type: str, distribution: str) -> list[Resource]:
     with open(f"distributions/{distribution}/{type}.txt") as file:
         return [parse_resource(line.rstrip(), type) for line in file if line.strip() != '']
 
-if os.path.exists("out/dependencies/base64.lua"):
-    base64_path = "out/dependencies/base64.lua"
+if os.path.exists("out/dependencies/ktlo/base64.lua"):
+    base64_path = "out/dependencies/ktlo/base64.lua"
 else:
-    base64_path = "dependencies/base64.lua"
-base64_dependency = Resource(path=base64_path, name="base64", dev_path="base64.lua")
+    base64_path = "dependencies/ktlo/base64.lua"
+base64_dependency = Resource(path=base64_path, name="ktlo.base64", dev_path="ktlo/base64.lua")
 
 def build_distribution_scope(distribution: str) -> Distribution:
     dependencies = read_dependencies(distribution)

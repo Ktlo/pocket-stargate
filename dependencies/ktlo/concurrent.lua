@@ -2,8 +2,8 @@ local os, table, math = os, table, math
 local os_pullEventRaw, os_startTimer, os_cancelTimer, os_epoch = os.pullEventRaw, os.startTimer, os.cancelTimer, os.epoch
 local table_unpack, table_pack, table_remove, table_insert = table.unpack, table.pack, table.remove, table.insert
 local math_floor = math.floor
-local next, setmetatable, select, error, type, pairs = next, setmetatable, select, error, type, pairs
-local check = require 'check'
+local setmetatable, select, error, type, pairs = setmetatable, select, error, type, pairs
+local check = require 'ktlo.check'
 local expect = check.expect
 
 local function table_index(obj, value)

@@ -11,16 +11,18 @@ local theme = {
 -------------------------
 
 local basalt = require 'basalt'
-local addresses = require 'addresses'
-local job = require 'job'
-local rpc = require 'rpc'
-local keyring = require 'keyring'
-local vault = require 'vault'
-local keys = require 'keys'
-local concurrent = require 'concurrent'
-local resources = require 'resources'
-local container = require 'container'
-local modal = require 'modal'
+local addresses = require 'psg.addresses'
+local job = require 'ktlo.job'
+local rpc = require 'ktlo.rpc'
+local keyring = require 'psg.keyring'
+local vault = require 'psg.vault'
+local keys = require 'psg.keys'
+local concurrent = require 'ktlo.concurrent'
+local resources = require 'ktlo.resources'
+local container = require 'ktlo.container'
+local modal = require 'psg.modal'
+
+local version = VERSION or "dev"
 
 local modem = peripheral.find("modem", function(_, modem) return modem.isWireless() end) or peripheral.find("modem")
 if not modem then
@@ -348,6 +350,8 @@ end
 
 -- stats begin
 
+local versionLabel = dom { 'root', 'main', 'stats', 'general', 'version' }
+
 local localAddressLabel = dom { 'root', 'main', 'stats', 'general', 'localAddress' }
 local generationLabel = dom { 'root', 'main', 'stats', 'general', 'generation' }
 local typeLabel = dom { 'root', 'main', 'stats', 'general', 'type' }
@@ -355,10 +359,12 @@ local variantLabel = dom { 'root', 'main', 'stats', 'general', 'variant' }
 local feedbackCodeLabel = dom { 'root', 'main', 'stats', 'general', 'feedbackCode' }
 local feedbackMessageLabel = dom { 'root', 'main', 'stats', 'general', 'feedbackMessage' }
 
-local energyLabel = dom { 'root', 'main', 'stats', 'energy', 'energy' }
-local stargateEnergyLabel = dom { 'root', 'main', 'stats', 'energy', 'stargateEnergy' }
-local targetEnergyLabel = dom { 'root', 'main', 'stats', 'energy', 'targetEnergy' }
-local energyProgressbar = dom { 'root', 'main', 'stats', 'energy', 'energyProgress' }
+local energyLabel = dom { 'root', 'main', 'stats', 'energy', 'interface', 'energy' }
+local energyCapacityLabel = dom { 'root', 'main', 'stats', 'energy', 'interface', 'capacity' }
+local energyInterfaceProgressbar = dom { 'root', 'main', 'stats', 'energy', 'interface', 'progress' }
+local stargateEnergyLabel = dom { 'root', 'main', 'stats', 'energy', 'stargate', 'energy' }
+local targetEnergyLabel = dom { 'root', 'main', 'stats', 'energy', 'stargate', 'target' }
+local energyProgressbar = dom { 'root', 'main', 'stats', 'energy', 'stargate', 'progress' }
 
 local isConnectedCheckbox = dom { 'root', 'main', 'stats', 'status', 'isConnected' }
 local isWormholeCheckbox = dom { 'root', 'main', 'stats', 'status', 'isWormhole' }
@@ -379,6 +385,7 @@ local function updateConnectedAddresds(stats)
 end
 
 local function updateStats(stats)
+    versionLabel:setText("psg "..version.."; sgs "..(stats.version or "?"))
     generationLabel:setText(tostring(stats.basic.generation))
     typeLabel:setText(tostring(stats.basic.type))
     variantLabel:setText(tostring(stats.basic.variant))
@@ -402,6 +409,14 @@ local function updateStats(stats)
     else
         energyProgressbar:setProgress(stats.basic.stargateEnergy/stats.basic.energyTarget*100)
     end
+    local energyCapacity = stats.basic.energyCapacity;
+    if energyCapacity then
+        energyCapacityLabel:setText(tostring(energyCapacity).." FE")
+        energyInterfaceProgressbar:setProgress(stats.basic.energy/energyCapacity*100)
+    else
+        energyCapacityLabel:setText("N/A")
+        energyInterfaceProgressbar:setProgress(0)
+    end
 
     isConnectedCheckbox:setValue(stats.basic.isConnected)
     isWormholeCheckbox:setValue(stats.basic.isWormholeOpen)
@@ -421,6 +436,9 @@ job.livedata.subscribe(statsProperty, function(stats)
         updateStats(stats)
         updateDialAddress(stats)
         updateDialButtonText(stats)
+        mainFrame:show()
+    else
+        mainFrame:hide()
     end
 end)
 
@@ -515,7 +533,6 @@ end)
 local function spawnHaltTimeout()
     return job.async(function()
         sleep(TIMEOUT)
-        mainFrame:hide()
         statsProperty:set(nil)
     end)
 end
@@ -537,7 +554,6 @@ rpc.subscribe_network(modem, CHANNEL_EVENT, function(event, meta)
         haltJob:cancel()
         haltJob = spawnHaltTimeout()
         data.distance = distance
-        mainFrame:show()
         statsProperty:set(data)
     elseif type == 'message' then
         local message = data
@@ -556,6 +572,7 @@ do
     local fastElement = dom { 'root', 'main', 'addressbook', 'fast' }
     fastElement:setValue(fastDialModeInit)
     synchPasswordButtonText()
+    dom { 'root', 'version' }:setText(version)
 end
 
 end)
