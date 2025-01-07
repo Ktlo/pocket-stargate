@@ -654,7 +654,7 @@ end
 ----------------------------------------------------
 
 local function ctime()
-    return os_epoch() / 1000
+    return os_epoch('utc') / 1000
 end
 
 --- @class timer : waitable
@@ -724,12 +724,12 @@ local timer_meta = {
 }
 
 --- @param period number
---- @param start number
+--- @param start? number
 --- @return timer
 --- @nodiscard
 function concurrent.timer(period, start)
     expect(1, period, 'number')
-    expect(2, start, 'number')
+    expect(2, start, 'number', 'nil')
     if not start then
         start = ctime() + period
     end

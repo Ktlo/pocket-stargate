@@ -21,6 +21,7 @@ local concurrent = require 'ktlo.concurrent'
 local resources = require 'ktlo.resources'
 local container = require 'ktlo.container'
 local modal = require 'psg.modal'
+local feedback = require 'psg.feedback'
 
 local version = VERSION or "dev"
 
@@ -417,7 +418,7 @@ local function updateStats(stats)
     if stats.crystal then
         feedbackMessageLabel:setText(stats.crystal.recentFeedbackName)
     else
-        feedbackMessageLabel:setText("N/A")
+        feedbackMessageLabel:setText(feedback[stats.basic.recentFeedbackCode] or "N/A")
     end
 
     energyLabel:setText(tostring(stats.basic.energy).." FE")

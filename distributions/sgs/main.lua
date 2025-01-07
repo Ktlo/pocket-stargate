@@ -256,9 +256,11 @@ local function insertDialedSymbol(index, symbol)
     insertAddressSymbol(connectedAddressProperty, index, symbol)
 end
 job.async(function()
+    local timer = concurrent.timer(DISCOVER_PERIOD)
     while true do
         pollValuesProperty:set(pollNewValues())
-        sleep(DISCOVER_PERIOD)
+        timer:sleep()
+        timer:skip_missed()
     end
 end)
 job.async(function()
