@@ -28,44 +28,44 @@
             <label id="name" x="(parent.w - self.w)/2" y="dialPane.y" text=""/>
             <label id="dialAddress" x="(parent.w - self.w)/2" y="dialPane.y + 1" text=""/>
             <label id="bufferAddress" x="dialAddress.x + dialAddress.w" y="dialPane.y + 1" fg="yellow" text=""/>
-            <button x="parent.w/2 - 11" y="dialPane.y + dialPane.h + 1" width="2" height="1" text="1" onClick="engage"/>
-            <button x="parent.w/2 - 8" y="dialPane.y + dialPane.h + 1" width="2" height="1" text="2" onClick="engage"/>
-            <button x="parent.w/2 - 5" y="dialPane.y + dialPane.h + 1" width="2" height="1" text="3" onClick="engage"/>
-            <button x="parent.w/2 - 2" y="dialPane.y + dialPane.h + 1" width="2" height="1" text="4" onClick="engage"/>
-            <button x="parent.w/2 + 1" y="dialPane.y + dialPane.h + 1" width="2" height="1" text="5" onClick="engage"/>
-            <button x="parent.w/2 + 4" y="dialPane.y + dialPane.h + 1" width="2" height="1" text="6" onClick="engage"/>
-            <button x="parent.w/2 + 7" y="dialPane.y + dialPane.h + 1" width="2" height="1" text="7" onClick="engage"/>
-            <button x="parent.w/2 + 10" y="dialPane.y + dialPane.h + 1" width="2" height="1" text="8" onClick="engage"/>
-            <button x="parent.w/2 - 11" y="dialPane.y + dialPane.h + 3" width="2" height="1" text="9" onClick="engage"/>
-            <button x="parent.w/2 - 8" y="dialPane.y + dialPane.h + 3" width="2" height="1" text="10" onClick="engage"/>
-            <button x="parent.w/2 - 5" y="dialPane.y + dialPane.h + 3" width="2" height="1" text="11" onClick="engage"/>
-            <button x="parent.w/2 - 2" y="dialPane.y + dialPane.h + 3" width="2" height="1" text="12" onClick="engage"/>
-            <button x="parent.w/2 + 1" y="dialPane.y + dialPane.h + 3" width="2" height="1" text="13" onClick="engage"/>
-            <button x="parent.w/2 + 4" y="dialPane.y + dialPane.h + 3" width="2" height="1" text="14" onClick="engage"/>
-            <button x="parent.w/2 + 7" y="dialPane.y + dialPane.h + 3" width="2" height="1" text="15" onClick="engage"/>
-            <button x="parent.w/2 + 10" y="dialPane.y + dialPane.h + 3" width="2" height="1" text="16" onClick="engage"/>
-            <button x="parent.w/2 - 11" y="dialPane.y + dialPane.h + 5" width="2" height="1" text="17" onClick="engage"/>
-            <button x="parent.w/2 - 8" y="dialPane.y + dialPane.h + 5" width="2" height="1" text="18" onClick="engage"/>
-            <button x="parent.w/2 - 5" y="dialPane.y + dialPane.h + 5" width="2" height="1" text="19" onClick="engage"/>
-            <button x="parent.w/2 - 2" y="dialPane.y + dialPane.h + 5" width="2" height="1" text="20" onClick="engage"/>
-            <button x="parent.w/2 + 1" y="dialPane.y + dialPane.h + 5" width="2" height="1" text="21" onClick="engage"/>
-            <button x="parent.w/2 + 4" y="dialPane.y + dialPane.h + 5" width="2" height="1" text="22" onClick="engage"/>
-            <button x="parent.w/2 + 7" y="dialPane.y + dialPane.h + 5" width="2" height="1" text="23" onClick="engage"/>
-            <button x="parent.w/2 + 10" y="dialPane.y + dialPane.h + 5" width="2" height="1" text="24" onClick="engage"/>
-            <button x="parent.w/2 - 11" y="dialPane.y + dialPane.h + 7" width="2" height="1" text="25" onClick="engage"/>
-            <button x="parent.w/2 - 8" y="dialPane.y + dialPane.h + 7" width="2" height="1" text="26" onClick="engage"/>
-            <button x="parent.w/2 - 5" y="dialPane.y + dialPane.h + 7" width="2" height="1" text="27" onClick="engage"/>
-            <button x="parent.w/2 - 2" y="dialPane.y + dialPane.h + 7" width="2" height="1" text="28" onClick="engage"/>
-            <button x="parent.w/2 + 1" y="dialPane.y + dialPane.h + 7" width="2" height="1" text="29" onClick="engage"/>
-            <button x="parent.w/2 + 4" y="dialPane.y + dialPane.h + 7" width="2" height="1" text="30" onClick="engage"/>
-            <button x="parent.w/2 + 7" y="dialPane.y + dialPane.h + 7" width="2" height="1" text="31" onClick="engage"/>
-            <button x="parent.w/2 + 10" y="dialPane.y + dialPane.h + 7" width="2" height="1" text="32" onClick="engage"/>
-            <button x="parent.w/2 - 8" y="dialPane.y + dialPane.h + 9" width="2" height="1" text="33" onClick="engage"/>
-            <button x="parent.w/2 - 5" y="dialPane.y + dialPane.h + 9" width="2" height="1" text="34" onClick="engage"/>
-            <button x="parent.w/2 - 2" y="dialPane.y + dialPane.h + 9" width="2" height="1" text="35" onClick="engage"/>
-            <button x="parent.w/2 + 1" y="dialPane.y + dialPane.h + 9" width="2" height="1" text="36" onClick="engage"/>
-            <button x="parent.w/2 + 4" y="dialPane.y + dialPane.h + 9" width="2" height="1" text="37" onClick="engage"/>
-            <button x="parent.w/2 + 7" y="dialPane.y + dialPane.h + 9" width="2" height="1" text="38" onClick="engage"/>
+            <button id="s1" x="parent.w/2 - 11" y="dialPane.y + dialPane.h + 1" width="2" height="1" text="1" onClick="engage"/>
+            <button id="s2" x="parent.w/2 - 8" y="dialPane.y + dialPane.h + 1" width="2" height="1" text="2" onClick="engage"/>
+            <button id="s3" x="parent.w/2 - 5" y="dialPane.y + dialPane.h + 1" width="2" height="1" text="3" onClick="engage"/>
+            <button id="s4" x="parent.w/2 - 2" y="dialPane.y + dialPane.h + 1" width="2" height="1" text="4" onClick="engage"/>
+            <button id="s5" x="parent.w/2 + 1" y="dialPane.y + dialPane.h + 1" width="2" height="1" text="5" onClick="engage"/>
+            <button id="s6" x="parent.w/2 + 4" y="dialPane.y + dialPane.h + 1" width="2" height="1" text="6" onClick="engage"/>
+            <button id="s7" x="parent.w/2 + 7" y="dialPane.y + dialPane.h + 1" width="2" height="1" text="7" onClick="engage"/>
+            <button id="s8" x="parent.w/2 + 10" y="dialPane.y + dialPane.h + 1" width="2" height="1" text="8" onClick="engage"/>
+            <button id="s9" x="parent.w/2 - 11" y="dialPane.y + dialPane.h + 3" width="2" height="1" text="9" onClick="engage"/>
+            <button id="s10" x="parent.w/2 - 8" y="dialPane.y + dialPane.h + 3" width="2" height="1" text="10" onClick="engage"/>
+            <button id="s11" x="parent.w/2 - 5" y="dialPane.y + dialPane.h + 3" width="2" height="1" text="11" onClick="engage"/>
+            <button id="s12" x="parent.w/2 - 2" y="dialPane.y + dialPane.h + 3" width="2" height="1" text="12" onClick="engage"/>
+            <button id="s13" x="parent.w/2 + 1" y="dialPane.y + dialPane.h + 3" width="2" height="1" text="13" onClick="engage"/>
+            <button id="s14" x="parent.w/2 + 4" y="dialPane.y + dialPane.h + 3" width="2" height="1" text="14" onClick="engage"/>
+            <button id="s15" x="parent.w/2 + 7" y="dialPane.y + dialPane.h + 3" width="2" height="1" text="15" onClick="engage"/>
+            <button id="s16" x="parent.w/2 + 10" y="dialPane.y + dialPane.h + 3" width="2" height="1" text="16" onClick="engage"/>
+            <button id="s17" x="parent.w/2 - 11" y="dialPane.y + dialPane.h + 5" width="2" height="1" text="17" onClick="engage"/>
+            <button id="s18" x="parent.w/2 - 8" y="dialPane.y + dialPane.h + 5" width="2" height="1" text="18" onClick="engage"/>
+            <button id="s19" x="parent.w/2 - 5" y="dialPane.y + dialPane.h + 5" width="2" height="1" text="19" onClick="engage"/>
+            <button id="s20" x="parent.w/2 - 2" y="dialPane.y + dialPane.h + 5" width="2" height="1" text="20" onClick="engage"/>
+            <button id="s21" x="parent.w/2 + 1" y="dialPane.y + dialPane.h + 5" width="2" height="1" text="21" onClick="engage"/>
+            <button id="s22" x="parent.w/2 + 4" y="dialPane.y + dialPane.h + 5" width="2" height="1" text="22" onClick="engage"/>
+            <button id="s23" x="parent.w/2 + 7" y="dialPane.y + dialPane.h + 5" width="2" height="1" text="23" onClick="engage"/>
+            <button id="s24" x="parent.w/2 + 10" y="dialPane.y + dialPane.h + 5" width="2" height="1" text="24" onClick="engage"/>
+            <button id="s25" x="parent.w/2 - 11" y="dialPane.y + dialPane.h + 7" width="2" height="1" text="25" onClick="engage"/>
+            <button id="s26" x="parent.w/2 - 8" y="dialPane.y + dialPane.h + 7" width="2" height="1" text="26" onClick="engage"/>
+            <button id="s27" x="parent.w/2 - 5" y="dialPane.y + dialPane.h + 7" width="2" height="1" text="27" onClick="engage"/>
+            <button id="s28" x="parent.w/2 - 2" y="dialPane.y + dialPane.h + 7" width="2" height="1" text="28" onClick="engage"/>
+            <button id="s29" x="parent.w/2 + 1" y="dialPane.y + dialPane.h + 7" width="2" height="1" text="29" onClick="engage"/>
+            <button id="s30" x="parent.w/2 + 4" y="dialPane.y + dialPane.h + 7" width="2" height="1" text="30" onClick="engage"/>
+            <button id="s31" x="parent.w/2 + 7" y="dialPane.y + dialPane.h + 7" width="2" height="1" text="31" onClick="engage"/>
+            <button id="s32" x="parent.w/2 + 10" y="dialPane.y + dialPane.h + 7" width="2" height="1" text="32" onClick="engage"/>
+            <button id="s33" x="parent.w/2 - 8" y="dialPane.y + dialPane.h + 9" width="2" height="1" text="33" onClick="engage"/>
+            <button id="s34" x="parent.w/2 - 5" y="dialPane.y + dialPane.h + 9" width="2" height="1" text="34" onClick="engage"/>
+            <button id="s35" x="parent.w/2 - 2" y="dialPane.y + dialPane.h + 9" width="2" height="1" text="35" onClick="engage"/>
+            <button id="s36" x="parent.w/2 + 1" y="dialPane.y + dialPane.h + 9" width="2" height="1" text="36" onClick="engage"/>
+            <button id="s37" x="parent.w/2 + 4" y="dialPane.y + dialPane.h + 9" width="2" height="1" text="37" onClick="engage"/>
+            <button id="s38" x="parent.w/2 + 7" y="dialPane.y + dialPane.h + 9" width="2" height="1" text="38" onClick="engage"/>
             <button id="poo" x="parent.w/2 - self.w" y="dialPane.y + dialPane.h + 11" width="9" text="PoO" onClick="engagePoo"/>
             <button x="parent.w/2 + 1" y="dialPane.y + dialPane.h + 11" width="9" text="Reset" onClick="reset"/>
         </frame>

@@ -18,13 +18,9 @@ local container = require 'ktlo.container'
 
 local version = VERSION or 'dev'
 
-local speaker = peripheral.find("speaker")
-if speaker then
-    speaker = peripheral.getName(speaker)
-end
-local wiredModem = peripheral.find("modem", function(_, modem) return not modem.isWireless() end)
-local wirelessModem = peripheral.find("modem", function(_, modem) return modem.isWireless() end)
-if not wiredModem and not wirelessModem then
+local speakers = { peripheral.find("speaker") }
+local modems = { peripheral.find("modem", function(_, modem) return modem.isWireless end) }
+if #modems == 0 then
     error "No modem found; exiting..."
 end
 
@@ -92,39 +88,31 @@ local id = os.getComputerID()
 
 local handlers = {}
 
-local addressBuffer = {}
+local function playChunk(speaker, chunk)
+    while not speaker.playAudio(chunk, 100) do
+        os.pullEvent('speaker_audio_empty')
+    end
+end
 
 local function playSound(sound)
     return job.async(function()
-        if speaker and fs.exists(sound) then
+        if #speakers > 0 and fs.exists(sound) then
             local dfpwm = require 'cc.audio.dfpwm'
             local decoder = dfpwm.make_decoder()
             while true do
                 for chunk in io.lines(sound, 16 * 1024) do
                     local buffer = decoder(chunk)
 
-                    while not peripheral.call(speaker, 'playAudio', buffer, 100) do
-                        os.pullEvent('speaker_audio_empty')
-                    end
+                    job.async(function()
+                        for _, speaker in ipairs(speakers) do
+                            job.async(function() playChunk(speaker, buffer) end)
+                        end
+                    end):await()
                 end
             end
         end
     end)
 end
-
-job.run(function()
-
-local mStargateGeneration = stargate.getStargateGeneration()
-local mStargateVariant = stargate.getStargateVariant()
-local mStargateType = stargate.getStargateType()
-local mLocalAddress
-if tier >= 3 then
-    mLocalAddress = stargate.getLocalAddress()
-else
-    mLocalAddress = {}
-end
-
-local emptyJob = job.async(function()end)
 
 local function callOrDefault(method, default)
     if method then
@@ -133,6 +121,15 @@ local function callOrDefault(method, default)
         return default
     end
 end
+
+job.run(function()
+
+local mStargateGeneration = stargate.getStargateGeneration()
+local mStargateVariant = stargate.getStargateVariant()
+local mStargateType = stargate.getStargateType()
+local mLocalAddress = callOrDefault(stargate.getLocalAddress, {})
+
+local emptyJob = job.async(function()end)
 
 local irisProperty = concurrent.property(callOrDefault(stargate.getIris, nil))
 local irisDurabilityProperty = concurrent.property(callOrDefault(stargate.getIrisDurability, 0))
@@ -158,59 +155,18 @@ job.livedata.subscribe(isIncomingConnectionProperty, function(isIncomingConnecti
     end
 end)
 
-local isDialingProperty = concurrent.property(false)
+local discoveryEventBroadcastLatch = concurrent.property(false)
+local addressBufferProperty = concurrent.property({})
+local isDialingProperty = job.livedata.combine(function(addressBuffer)
+    return #addressBuffer > 0
+end, addressBufferProperty)
 local engagedChevronsProperty = concurrent.property(stargate.getChevronsEngaged())
-local dialedAddressProperty
-do
-    local dialedAddress
-    if tier >= 2 then
-        dialedAddress = stargate.getDialedAddress()
-    else
-        dialedAddress = {}
-    end
-    dialedAddressProperty = concurrent.property(dialedAddress)
-end
+local dialedAddressProperty = concurrent.property(callOrDefault(stargate.getDialedAddress, {}))
 local energyTargetProperty = concurrent.property(stargate.getEnergyTarget())
-local connectedAddressProperty
-do
-    local connectedAddress
-    if tier >= 3 then
-        connectedAddress = stargate.getConnectedAddress()
-    else
-        connectedAddress = {}
-    end
-    connectedAddressProperty = concurrent.property(connectedAddress)
-end
-local isNetworkRestrictedProperty
-do
-    local isNetworkRestricted
-    if tier >=3 then
-        isNetworkRestricted = stargate.isNetworkRestricted()
-    else
-        isNetworkRestricted = false
-    end
-    isNetworkRestrictedProperty = concurrent.property(isNetworkRestricted)
-end
-local networkProperty
-do
-    local network
-    if tier >= 3 then
-        network = stargate.getNetwork()
-    else
-        network = false
-    end
-    networkProperty = concurrent.property(network)
-end
-local filterTypeProperty
-do
-    local filterType
-    if tier >= 3 then
-        filterType = stargate.getFilterType()
-    else
-        filterType = 0
-    end
-    filterTypeProperty = concurrent.property(filterType)
-end
+local connectedAddressProperty = concurrent.property(callOrDefault(stargate.getConnectedAddress, {}))
+local isNetworkRestrictedProperty = concurrent.property(callOrDefault(stargate.isNetworkRestricted, false))
+local networkProperty = concurrent.property(callOrDefault(stargate.getNetwork, false))
+local filterTypeProperty = concurrent.property(callOrDefault(stargate.getFilterType, 0))
 local function pollNewValues()
     local feedbackCode, feedbackName = stargate.getRecentFeedback();
     return {
@@ -233,8 +189,9 @@ local function buildDiscoverEvent()
     result.solarSystem = solarSystem
     result.tier = tier
     local dialedAddress = dialedAddressProperty.value
+    local addressBuffer = addressBufferProperty.value
     local skip = 0
-    if dialedAddress and dialedAddress[#dialedAddress] == addressBuffer[1] then
+    if dialedAddress[#dialedAddress] == addressBuffer[1] then
         skip = 1
     end
     local sendAddressBuffer = {}
@@ -244,6 +201,8 @@ local function buildDiscoverEvent()
     end
     result.addressBuffer = sendAddressBuffer
     result.dialedAddress = dialedAddress;
+    local isConnected = isStargateConnectedProperty.value
+    result.pooPressed = isConnected or addressBuffer[#addressBuffer] == 0
     result.basic = {
         energy = values.energy;
         energyCapacity = values.energyCapacity;
@@ -254,7 +213,7 @@ local function buildDiscoverEvent()
         stargateEnergy = values.stargateEnergy;
         chevronsEngaged = engagedChevronsProperty.value;
         openTime = values.openTime;
-        isConnected = isStargateConnectedProperty.value;
+        isConnected = isConnected;
         isDialingOut = isStargateDialingOutProperty.value;
         isWormholeOpen = values.isWormholeOpen;
         recentFeedbackCode = values.feedbackCode;
@@ -280,8 +239,10 @@ local discoveryMessageProperty = job.livedata.combine(
     dialedAddressProperty,
     energyTargetProperty,
     isStargateDialingOutProperty,
-    connectedAddressProperty
+    connectedAddressProperty,
+    addressBufferProperty
 )
+job.livedata.subscribe(discoveryMessageProperty, function() discoveryEventBroadcastLatch:set(true) end)
 local function insertAddressSymbol(property, index, symbol)
     local prevAddress = property.value
     if symbol ~= 0 and prevAddress[index] ~= symbol then
@@ -348,7 +309,7 @@ job.async(function()
         isStargateDialingOutProperty:set(false)
         dialedAddressProperty:set({})
         connectedAddressProperty:set({})
-        isDialingProperty:set(false)
+        addressBufferProperty:set({})
     end
 end)
 
@@ -363,17 +324,38 @@ function otherside.info(nonce)
     return spkey.auth_request(nonce, { isIrisClosed = stargate.getIrisProgress and stargate.getIrisProgress() ~= 0 })
 end
 
+local function broadcast(modemFilter, channel, message)
+    for _, modem in ipairs(modems) do
+        if modemFilter(modem) then
+            rpc.broadcast_network(modem, channel, message)
+        end
+    end
+end
+
+local function returnTrue()
+    return true
+end
+
+local function broadcast_public(message)
+    broadcast(returnTrue, CHANNEL_EVENT, message)
+end
+
+local function isWiredModem(modem)
+    return not modem.isWireless()
+end
+
+local function broadcast_security(message)
+    broadcast(isWiredModem, SECURITY_EVENT, message)
+end
+
 local function saveAuditEvent(event, record)
     local timestamp = audit.save(event, record)
     record.event = event
     record.timestamp = timestamp
-    if wiredModem then
-        local message = {
-            type = 'audit';
-            record = record;
-        }
-        rpc.broadcast_network(wiredModem, SECURITY_EVENT, message)
-    end
+    broadcast_security {
+        type = 'audit';
+        record = record;
+    }
 end
 
 audit.define('auth', { 'key', 'error' })
@@ -466,38 +448,52 @@ end
 
 local slowDialingEnabled = true
 
-local dialingSequenceTask = emptyJob
-local function startDialingSequence()
-    return job.async(function()
-        playSound("dialing.dfpwm")
-        while next(addressBuffer) do
-            local symbol = addressBuffer[1]
-            encodeSymbol(symbol, slowDialingEnabled)
-            table.remove(addressBuffer, 1)
-        end
-        isDialingProperty:set(false)
-    end)
+local function queuePop(queue)
+    return { table.unpack(queue, 2) }
 end
-job.livedata.subscribe(isDialingProperty, function(isDialing)
-    if isDialing then
-        dialingSequenceTask = startDialingSequence()
-    else
-        addressBuffer = {}
-        dialingSequenceTask:cancel()
+
+local function queuePush(queue, value)
+    local new = { table.unpack(queue) }
+    table.insert(new, value)
+    return new
+end
+
+job.livedata.determines(isDialingProperty, function()
+    playSound("dialing.dfpwm")
+    while true do
+        local addressBuffer = addressBufferProperty.value
+        local symbol = addressBuffer[1]
+        if not symbol then break end
+        encodeSymbol(symbol, slowDialingEnabled)
+        addressBufferProperty:set(queuePop(addressBufferProperty.value))
     end
 end)
 
 function handlers.engage(symbol)
+    if isStargateConnectedProperty.value then
+        return false
+    end
+    local dialedAddress = dialedAddressProperty.value
+    local addressBuffer = addressBufferProperty.value
     local bufferLength = #addressBuffer
-    if bufferLength >= 9 then
+    if bufferLength + #dialedAddress >= 9 then
         return false
     end
     if addressBuffer[bufferLength] == 0 then
         return false
     end
+    for _, it in ipairs(dialedAddress) do
+        if it == symbol then
+            return false
+        end
+    end
+    for _, it in ipairs(addressBuffer) do
+        if it == symbol then
+            return false
+        end
+    end
     slowDialingEnabled = true
-    addressBuffer[bufferLength + 1] = symbol
-    isDialingProperty:set(true)
+    addressBufferProperty:set(queuePush(addressBuffer, symbol))
     return true
 end
 
@@ -507,9 +503,9 @@ function handlers.dial(address, slow)
         return
     end
     slowDialingEnabled = slow
-    addressBuffer = address
+    local addressBuffer = address
     addressBuffer[#addressBuffer+1] = 0
-    isDialingProperty:set(true)
+    addressBufferProperty:set(addressBuffer)
     local setChevronConfiguration = stargate.setChevronConfiguration
     if setChevronConfiguration then
         if #addressBuffer == 8 then
@@ -525,8 +521,8 @@ function handlers.disconnect()
 end
 
 function handlers.register(pkey)
-    if wiredModem and not keyring.exists(pkey) then
-        rpc.broadcast_network(wiredModem, SECURITY_EVENT, { type = 'register', key = pkey })
+    if not keyring.exists(pkey) then
+        broadcast_security { type = 'register', key = pkey }
     end
     return spkey.public_key()
 end
@@ -555,6 +551,7 @@ end
 
 function security.getState()
     local result = {
+        version = version;
         keyring = keyring.get_all();
         tier = tier;
         settings = {
@@ -586,9 +583,7 @@ function security.getState()
 end
 
 local function broadcastSetting(setting, value)
-    if wiredModem then
-        rpc.broadcast_network(wiredModem, SECURITY_EVENT, { type = 'setting', setting = setting, value = value })
-    end
+    broadcast_security { type = 'setting', setting = setting, value = value }
 end
 
 function security.setEnergyTarget(target)
@@ -626,28 +621,25 @@ end)
 
 function security.deny(pkey)
     local r = keyring.forget(pkey)
-    if wiredModem and r then
-        rpc.broadcast_network(wiredModem, SECURITY_EVENT, { type = 'deny', key = pkey })
+    if r then
+        broadcast_security { type = 'deny', key = pkey }
     end
 end
 
 function security.allow(pkey, name)
     local r = keyring.trust(pkey, name)
-    if wiredModem and r then
-        rpc.broadcast_network(wiredModem, SECURITY_EVENT, { type = 'allow', key = pkey, name = name })
+    if r then
+        broadcast_security { type = 'allow', key = pkey, name = name }
     end
 end
 
 local function broadcastFilterUpdate(list, action, address)
-    if wiredModem then
-        local message = {
-            type = 'filter';
-            list = list;
-            action = action;
-            address = address;
-        }
-        rpc.broadcast_network(wiredModem, SECURITY_EVENT, message)
-    end
+    broadcast_security {
+        type = 'filter';
+        list = list;
+        action = action;
+        address = address;
+    }
 end
 
 function security.allowlistAdd(address)
@@ -783,50 +775,44 @@ job.livedata.determines(enableAuditProperty, function()
     end)
 end)
 
-local function broadcastEvent(event)
-    if wirelessModem then
-        rpc.broadcast_network(wirelessModem, CHANNEL_EVENT, event)
+job.livedata.subscribe(discoveryEventBroadcastLatch, function(value)
+    if value then
+        sleep()
+        broadcast_public {
+            type = 'discover';
+            data = discoveryMessageProperty.value;
+        }
+        discoveryEventBroadcastLatch:set(false)
     end
-    if wiredModem then
-        rpc.broadcast_network(wiredModem, CHANNEL_EVENT, event)
-    end
-end
-
-job.livedata.subscribe(discoveryMessageProperty, function(discover)
-    local event = {
-        type = 'discover';
-        data = discover;
-    }
-    broadcastEvent(event)
 end)
 
 job.async(function()
     while true do
         local _, _, message = os.pullEvent('stargate_message_received')
-        local event = {
-            type = 'message';
-            data = message;
-        }
         job.async(function ()
-            broadcastEvent(event)
+            broadcast_public {
+                type = 'message';
+                data = message;
+            }
         end)
     end
 end)
 
 do
     local commands = rpc.simple_commands(handlers)
-    if wirelessModem then
-        rpc.server_network(commands, wirelessModem, CHANNEL_COMMAND) -- backward compatibility
-        rpc.server_network(commands, wirelessModem, CHANNEL_COMMAND, id)
-    end
-    if wiredModem then
-        rpc.server_network(commands, wiredModem, CHANNEL_COMMAND) -- backward compatibility
-        rpc.server_network(commands, wiredModem, CHANNEL_COMMAND, id)
+    for _, modem in ipairs(modems) do
+        rpc.server_network(commands, modem, CHANNEL_COMMAND) -- backward compatibility
+        rpc.server_network(commands, modem, CHANNEL_COMMAND, id)
     end
 end
 
-if wiredModem then
-    rpc.server_network(rpc.simple_commands(security), wiredModem, SECURITY_COMMAND)
+do
+    local commands = rpc.simple_commands(security)
+    for _, modem in ipairs(modems) do
+        if isWiredModem(modem) then
+            rpc.server_network(commands, modem, SECURITY_COMMAND)
+        end
+    end
 end
 
 local function stargateMessageExchanger(handler)

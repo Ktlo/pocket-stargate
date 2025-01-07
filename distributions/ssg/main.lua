@@ -542,6 +542,8 @@ end
 
 job.async(function()
     local state = job.retry(5, client.getState)
+    local versionLabel = dom { 'root', 'main', 'keys', 'version' }
+    versionLabel:setText("SSG "..(VERSION or "dev").."; SGS "..(state.version or "?"))
     local hostKey = dom { 'root', 'main', 'keys', 'hostKey' }
     hostKey:setText(keys.fingerprint(state.settings.key))
     for _, keyinfo in ipairs(state.keyring) do

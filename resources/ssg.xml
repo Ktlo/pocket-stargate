@@ -15,6 +15,7 @@
             <pane id="scroller" x="up.x" y="up.y + up.h" width="1" height="down.y - up.y" bg="black"/>
             <button id="allow" x="2" y="list.y + list.h + 1" width="7" text="Allow" bg="green" onClick="allow"/>
             <button id="deny" x="allow.x + allow.w + 1" y="list.y + list.h + 1" width="7" text="Deny" bg="red" onClick="deny"/>
+            <label id="version" x="(parent.w - self.w)/2" y="parent.h" fg="cyan"/>
         </frame>
         <frame id="audit" y="2" height="parent.h - 1" visible="false">
             <label x="2" y="2" text="Page"/>

@@ -219,18 +219,16 @@ end)
 basalt.setVariable("engage", function(self)
     local symbol = tonumber(self:getValue())
     job.async(function()
-        stargate.engage(symbol)
+        if self:getBackground() ~= colors.orange then
+            stargate.engage(symbol)
+        end
     end)
 end)
 
 basalt.setVariable("engagePoo", function()
     local stats = statsProperty.value
-    if stats then
-        if stats.basic.isConnected then
-            job.async(stargate.disconnect)
-        else
-            job.async(function() stargate.engage(0) end)
-        end
+    if stats and not stats.pooPressed then
+        job.async(function() stargate.engage(0) end)
     end
 end)
 
@@ -325,9 +323,11 @@ local function updateDialButtonText(stats)
     dialButton:setText(text)
 end
 
-local dialNameLabel = dom { 'root', 'main', 'dhd', 'name' }
-local dialAddress = dom { 'root', 'main', 'dhd', 'dialAddress' }
-local bufferAddress = dom { 'root', 'main', 'dhd', 'bufferAddress' }
+local dialFrame = dom { 'root', 'main', 'dhd' }
+local dialNameLabel = dialFrame:getObject('name')
+local dialAddress = dialFrame:getObject('dialAddress')
+local bufferAddress = dialFrame:getObject('bufferAddress')
+local pooButton = dialFrame:getObject('poo')
 
 local function updateDialAddress(stats)
     local dialAddressText, bufferAddressText
@@ -384,6 +384,25 @@ local function updateConnectedAddresds(stats)
     connectedAddressLabel:setText(addresses.tostring(address))
 end
 
+local function populateLookupTable(lookup, data)
+    for _, value in ipairs(data) do
+        lookup[value] = true
+    end
+end
+
+local function updateDialButtons(stats)
+    local lookup = {}
+    populateLookupTable(lookup, stats.dialedAddress)
+    populateLookupTable(lookup, stats.addressBuffer)
+    for i=1, 38 do
+        local button = dialFrame:getObject("s"..i)
+        local color = lookup[i] and colors.orange or colors.gray
+        button:setBackground(color)
+    end
+    local color = stats.pooPressed and colors.orange or colors.gray
+    pooButton:setBackground(color)
+end
+
 local function updateStats(stats)
     versionLabel:setText("psg "..version.."; sgs "..(stats.version or "?"))
     generationLabel:setText(tostring(stats.basic.generation))
@@ -433,6 +452,7 @@ end
 
 job.livedata.subscribe(statsProperty, function(stats)
     if stats then
+        updateDialButtons(stats)
         updateStats(stats)
         updateDialAddress(stats)
         updateDialButtonText(stats)

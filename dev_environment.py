@@ -5,7 +5,7 @@ import deps
 import os
 
 args_parser = argparse.ArgumentParser(
-    prog="packer",
+    prog="dev_environment",
     description="Setups development environment",
 )
 
