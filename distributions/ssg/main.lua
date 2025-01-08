@@ -473,6 +473,17 @@ local function populateEvent(event)
     if type == 'auth' then
         local fingerprint = keys.fingerprint(event.key)
         event.fingerprint = fingerprint
+        for _, item in ipairs(keysList:getAll()) do
+            local keyInfo = item.args[1]
+            if keyInfo.key == event.key then
+                local name = keyInfo.name
+                if name then
+                    event.name = name
+                    description = description..","..name
+                end
+                break
+            end
+        end
         description = description..","..fingerprint
     elseif type == 'wormhole' then
         local direction = minimizeDirection(event.direction)
@@ -550,6 +561,9 @@ local function addKeyToKeylist(event, color)
         text = name.." "..fingerprint
     else
         text = fingerprint
+    end
+    if color then
+        text = "*"..text
     end
     keysList:addItem(text, nil, color, { key=key, name=name, fingerprint=fingerprint })
 end

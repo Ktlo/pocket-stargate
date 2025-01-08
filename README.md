@@ -188,3 +188,9 @@ It has two arguments:
 2. **computer_folder** - path to the CC computer folder on your real machine
 
 This script only works on your local machine storage (network storages not supported) and expects the git repository and the computer folder be in the same file system. That's because the script makes hard links to the original files. It is a lot easier to develop this way.
+
+## Credits
+
+Base64 lua implementation: https://github.com/iskolbin/lbase64
+Basalt GUI library: https://basalt.madefor.cc
+CC cryptography: https://github.com/migeyel/ccryptolib

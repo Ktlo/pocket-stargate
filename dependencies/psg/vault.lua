@@ -47,6 +47,7 @@ local function save_public_key(key, name)
         file:write(" ")
         file:write(name)
     end
+    file:write("\n")
     file:close()
 end
 

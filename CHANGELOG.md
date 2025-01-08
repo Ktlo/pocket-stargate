@@ -1,3 +1,34 @@
+## v1.2.0 2025-01-08
+
+### Added
+- Stargate interface energy capacity becomes visible in PSG.
+- All programs show their versions now. PSG and SSG will also show SGS version.
+- PSG will show feedback messages even if SGS uses basic interface.
+- SSG can show key names now.
+- Audit entry will show key name for 'auth' event if possible.
+- You can specify your key name in Keys menu in PSG. This name will be sent to SSG on key exchange.
+- Your key name is stored in *public_key.txt* file. *keyring.txt* and *public_key.txt* files now have the same format.
+- You can specify alternative local stargate address for SGS. This can be used to hide your real address or if you want to tell your address everyone but do not want to craft expensive Advanced Crystal Interface block.
+
+### Changed
+- SGS tries to utilize all available modems except ender modem now.
+- SGS will use all available speaker peripherals for alarm.
+- Pressed buttons in PSG > Dial window are colored orange now.
+- All input fields in dialog windows will have white background now.
+- Pending keys now makred with `*`. Previously they were marked only with yellow color, but this was not visible if this key is selected.
+- PSG will try to assign name for SGS key from addressbook using its local address for keyring.
+
+### Fixed
+- Long delays when pressed symbol appears in dialed address string in PSG > Dial window.
+- You can not encode the same symbol twice in PSG > Dial window now.
+- Dialing sequence freeze if the same symbol appears several times in address buffer on engage remote call.
+- Reduced the amout of synchronization events. Previously it was possible to overflow the event queues in PSG instances if game server throttles.
+- Timeouts due event queue overflow.
+- Pending key were not removed from key list on deny.
+
+### Removed
+- The ability to reset a stargate by pressing PoO button in PSG > Dial window. There is literally "Reset" button next to it!
+
 ## v1.1.2 2024-01-01
 
 ### Fixed
