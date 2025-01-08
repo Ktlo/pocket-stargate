@@ -3,9 +3,9 @@
     <label x="parent.w/2-self.w/2" fg="white" text="Change Password" />
     <label id="message" x="2" y="3" fg="red" text="" />
     <label x="2" y="5" text="New" />
-    <input id="password" x="10" y="5" width="parent.w - self.x" type="password" />
+    <input id="password" x="10" y="5" width="parent.w - self.x" bg="white" type="password" />
     <label x="2" y="7" text="Confirm" />
-    <input id="confirm" x="10" y="7" width="parent.w - self.x" type="password" />
+    <input id="confirm" x="10" y="7" width="parent.w - self.x" bg="white" type="password" />
     <button id="done" x="3" y="parent.h-3" width="9" bg="green" text="Done" />
     <button id="cancel" x="parent.w - self.w - 1" y="parent.h-3" width="9" bg="cyan" text="Cancel" />
 </frame>

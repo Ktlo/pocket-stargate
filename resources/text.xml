@@ -1,0 +1,9 @@
+<frame id="window" bg="lightBlue">
+    <pane width="parent.w" height="1" bg="blue" />
+    <label x="parent.w/2-self.w/2" text="Input Text" fg="white"/>
+    <input id="input" x="2" y="3" width="parent.w - 2" bg="white"/>
+    <frame id="control" x="(parent.w - self.w)/2 + 1" y="5" width="17" height="3" bg="lightBlue">
+        <button id="done" x="1" width="7" text="Done" bg="green" />
+        <button id="back" x="10" width="7" text="Back" bg="red" />
+    </frame>
+</frame>

@@ -259,4 +259,26 @@ function library.address()
     return open_modal_window(setup_address)
 end
 
+--- @param init? string
+--- @return string
+--- @async
+function library.text(init)
+    return open_modal_window(function(frame, future)
+        local window = setup_frame(frame, 8, "text.xml")
+        local input = window:getObject("input")
+        if init then
+            input:setValue(init)
+        end
+        local control = window:getObject("control")
+        control:getObject("done"):onClick(function()
+            local value = input:getValue()
+            future:complete(value)
+        end)
+        control:getObject("back"):onClick(function()
+            future:complete(nil)
+        end)
+        input:setFocus()
+    end)
+end
+
 return library

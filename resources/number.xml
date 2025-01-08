@@ -1,7 +1,7 @@
 <frame id="window" bg="lightGray">
     <pane width="parent.w" height="1" bg="gray" />
     <label x="parent.w/2-self.w/2" text="Input Number" />
-    <input id="input" x="2" y="3" width="parent.w - 2" type="number" />
+    <input id="input" x="2" y="3" width="parent.w - 2" bg="white" type="number" />
     <frame id="digits" x="3" y="5" width="19" height="7" bg="lightGray">
         <button id="d0" x="1" y="1" width="3" text="0" />
         <button id="d1" x="5" y="1" width="3" text="1" />

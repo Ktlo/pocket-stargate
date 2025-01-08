@@ -174,6 +174,20 @@ basalt.setVariable("dial", function()
     end
 end)
 
+basalt.setVariable("setName", function(element)
+    local name = element:getValue()
+    job.async(function()
+        local newName = modal.text(name)
+        if newName then
+            element:setText(newName)
+            if newName == "" then
+                newName = nil
+            end
+            vault.set_name(newName)
+        end
+    end)
+end)
+
 local authKeysList
 
 local function addKeyToKeyringList(key, name)
@@ -191,7 +205,7 @@ basalt.setVariable("register", function()
     local stats = statsProperty.value
     if stats then
         job.async(function()
-            local hostKey = stargate.register(vault.public_key())
+            local hostKey = stargate.register(vault.public_key(), vault.get_name())
             local name = addresses.getname_by_key(stats.solarSystem)
             if keyring.trust(hostKey, name) then
                 addKeyToKeyringList(hostKey, name)
@@ -594,6 +608,7 @@ do
     fastElement:setValue(fastDialModeInit)
     synchPasswordButtonText()
     dom { 'root', 'version' }:setText(version)
+    dom { 'root', 'vault', 'hostName' }:setText(vault.get_name() or "")
 end
 
 end)

@@ -522,9 +522,9 @@ function handlers.disconnect()
     stargate.disconnectStargate()
 end
 
-function handlers.register(pkey)
+function handlers.register(pkey, name)
     if not keyring.exists(pkey) then
-        broadcast_security { type = 'register', key = pkey }
+        broadcast_security { type = 'register', key = pkey, name = name }
     end
     return spkey.public_key()
 end
@@ -622,10 +622,8 @@ job.livedata.subscribe(filterTypeProperty, function(value)
 end)
 
 function security.deny(pkey)
-    local r = keyring.forget(pkey)
-    if r then
-        broadcast_security { type = 'deny', key = pkey }
-    end
+    keyring.forget(pkey)
+    broadcast_security { type = 'deny', key = pkey }
 end
 
 function security.allow(pkey, name)

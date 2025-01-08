@@ -3,3 +3,4 @@ alert.xml
 message.xml
 passwd.xml
 chpass.xml
+text.xml

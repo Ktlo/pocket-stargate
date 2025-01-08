@@ -131,7 +131,9 @@
     <frame id="vault" visible="false">
         <label id="hostKeyLabel" x="2" y="2" text="My key:"/>
         <label id="hostKey" x="hostKeyLabel.x + hostKeyLabel.w + 1" y="2" width="16" bg="gray" fg="white"/>
-        <list id="list" x="2" y="hostKeyLabel.y + 2" width="parent.w - 3" height="parent.h - 12"/>
+        <label x="4" y="3" text="Name:"/>
+        <label id="hostName" x="hostKeyLabel.x + hostKeyLabel.w + 1" y="3" width="16" bg="gray" fg="white" onClick="setName"/>
+        <list id="list" x="2" y="hostName.y + 2" width="parent.w - 3" height="parent.h - 13"/>
         <button id="up" x="list.x + list.w" y="list.y" width="1" height="1" text="" onClick="scrollUp"/>
         <button id="down" x="list.x + list.w" y="list.y + list.h - 1" width="1" height="1" text="" onClick="scrollDown"/>
         <pane id="scroller" x="up.x" y="up.y + up.h" width="1" height="down.y - up.y" bg="black"/>

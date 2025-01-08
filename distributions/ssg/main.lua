@@ -92,8 +92,8 @@ basalt.setVariable("allow", function()
     job.async(function()
         local i = keysList:getItemIndex()
         if i then
-            local key = keysList:getItem(i).args[1].key
-            client.allow(key)
+            local keyInfo = keysList:getItem(i).args[1]
+            client.allow(keyInfo.key, keyInfo.name)
         end
     end)
 end)
@@ -102,7 +102,8 @@ basalt.setVariable("deny", function()
     job.async(function()
         local i = keysList:getItemIndex()
         if i then
-            local key = keysList:getItem(i).args[1].key
+            local item = keysList:getItem(i)
+            local key = item.args[1].key
             client.deny(key)
         end
     end)
@@ -540,6 +541,19 @@ local function updateIrisDurability(current, max)
     irisDurabilityElement:setText(string.format("%d/%d", current, max))
 end
 
+local function addKeyToKeylist(event, color)
+    local key = event.key
+    local fingerprint = keys.fingerprint(key)
+    local name = event.name
+    local text
+    if name then
+        text = name.." "..fingerprint
+    else
+        text = fingerprint
+    end
+    keysList:addItem(text, nil, color, { key=key, name=name, fingerprint=fingerprint })
+end
+
 job.async(function()
     local state = job.retry(5, client.getState)
     local versionLabel = dom { 'root', 'main', 'keys', 'version' }
@@ -547,7 +561,7 @@ job.async(function()
     local hostKey = dom { 'root', 'main', 'keys', 'hostKey' }
     hostKey:setText(keys.fingerprint(state.settings.key))
     for _, keyinfo in ipairs(state.keyring) do
-        keysList:addItem(keys.fingerprint(keyinfo.key), nil, nil, keyinfo)
+        addKeyToKeylist(keyinfo)
     end
     setEnergyTargetText(state.settings.energyTarget)
     setButtonCheckbox(autoIrisElement, state.settings.autoIris)
@@ -601,7 +615,7 @@ rpc.subscribe_network(modem, SECURITY_EVENT, function(event)
         local key = event.key
         local i = findKey(key)
         if not i then
-            keysList:addItem(keys.fingerprint(key), nil, colors.yellow, { key=key })
+            addKeyToKeylist(event, colors.yellow)
         end
     elseif t == 'allow' then
         local key = event.key
@@ -609,7 +623,7 @@ rpc.subscribe_network(modem, SECURITY_EVENT, function(event)
         if i then
             keysList:removeItem(i)
         end
-        keysList:addItem(keys.fingerprint(key), nil, nil, { key=key, name=event.name })
+        addKeyToKeylist(event)
     elseif t == 'deny' then
         local key = event.key
         local i = findKey(key)

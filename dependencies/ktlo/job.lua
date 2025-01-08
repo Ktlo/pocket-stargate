@@ -60,7 +60,7 @@ local function job_terminate_condition(job)
             job.result:complete(job.task.future:get())
         end
         job.future:complete(job.result:get())
-        local success, err = job.future:get():extract()
+        local success, err = job.future:get():unpack()
         if success then
             job.status = 'done'
         else
@@ -181,7 +181,7 @@ function library.run(action)
         local file = io.open(filename, 'w')
         if file then
             file:write("ERROR: ")
-            file:write(select(2, root.future:get():extract()))
+            file:write(select(2, root.future:get():unpack()))
             file:write('\n')
             for i=#traces, 1, -1 do
                 local trace = traces[i]

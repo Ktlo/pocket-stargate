@@ -1,7 +1,7 @@
 <frame id="window" bg="orange">
     <pane width="parent.w" height="1" bg="red" />
     <label x="parent.w/2-self.w/2" fg="white" text="Input Password" />
-    <input id="password" x="2" y="3" width="parent.w - 2" type="password" />
+    <input id="password" x="2" y="3" width="parent.w - 2" bg="white" type="password" />
     <button id="done" x="3" y="parent.h-3" width="9" bg="green" text="Done" />
     <button id="cancel" x="parent.w - self.w - 1" y="parent.h-3" width="9" bg="blue" text="Cancel" />
 </frame>

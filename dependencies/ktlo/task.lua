@@ -52,22 +52,22 @@ local function task_continue(self, event)
     local thread = self.thread
     local prev_task = _TASK
     _G._TASK = self
-    local result = { coroutine.resume(thread, table.unpack(event)) }
+    local result = container.result.resuming(thread, table.unpack(event))
     _G._TASK = prev_task
-    if not result[1] then
-        local msg = result[2]
-        self.future:complete(container.result.failure(msg))
-        if endsWith(msg, "Terminated") then
+    local ok, err = result:unpack()
+    if not ok then
+        self.future:complete(result)
+        if endsWith(err, "Terminated") then
             self.status = 'stoped'
         else
             self.status = 'failed'
-            self.traceback = debug.traceback(thread, msg)
+            self.traceback = debug.traceback(thread, err)
         end
     elseif coroutine.status(thread) == 'dead' then
-        self.future:complete(container.result.success(table.unpack(result, 2)))
+        self.future:complete(result)
         self.status = 'dead'
     else
-        local next_event = result[2]
+        local next_event = err
         self.event = next_event
         if next_event == 'wake' then
             table.insert(self.pool.orders, {task=self, order='wake'})

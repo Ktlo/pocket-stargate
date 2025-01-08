@@ -110,6 +110,7 @@ function vault.encrypt_key(password)
         encrypted = true;
         salt = base64.encode(salt);
         key = base64.encode(encrypted);
+        name = content.name;
     }
     save_private_key(keyInfo)
     isEncryprted = true
@@ -129,9 +130,9 @@ function vault.private_key(password)
         if publicKey ~= actualPublicKey then
             return nil, "wrong password"
         end
-        return decrypted
+        return decrypted, content.name
     else
-        return encodedKey
+        return encodedKey, content.name
     end
 end
 
@@ -144,6 +145,7 @@ function vault.decrypt_key(password)
     local keyInfo = {
         encrypted = false;
         key = base64.encode(key);
+        name = reason;
     }
     save_private_key(keyInfo)
     isEncryprted = false
@@ -161,6 +163,16 @@ function vault.make_auth_request(privateKey, session)
         message = messageString;
         signature = base64.encode(signature);
     }
+end
+
+function vault.get_name()
+    return open_private_key().name
+end
+
+function vault.set_name(name)
+    local keyInfo = open_private_key()
+    keyInfo.name = name
+    save_private_key(keyInfo)
 end
 
 ----------------------------------------------------------

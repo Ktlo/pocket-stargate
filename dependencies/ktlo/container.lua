@@ -4,6 +4,7 @@ local error, setmetatable, tostring, type = error, setmetatable, tostring, type
 local math_huge, math_floor = math.huge, math.floor
 local string_match, string_gsub, string_format = string.match, string.gsub, string.format
 local expect = check.expect
+local coroutine_resume = coroutine.resume
 
 local library = {}
 
@@ -31,7 +32,7 @@ end
 --- @return any | nil err
 --- @return any ...
 --- @nodiscard
-function result_methods:extract()
+function result_methods:unpack()
     expect(1, self, 'result')
     local value = self.value
     if self.success then
@@ -68,23 +69,40 @@ local function result_failure(err)
     return result_init(false, err)
 end
 
+--- @param ok boolean
+--- @param ... any
+--- @return result
+--- @nodiscard
+local function result_pack(ok, ...)
+    if ok then
+        return result_success(...)
+    else
+        return result_failure(...)
+    end
+end
+
 --- @param action function
 --- @param ... any
 --- @return result
 local function result_catching(action, ...)
     expect(1, action, 'function')
-    local r = { pcall(action, ...) }
-    if r[1] then
-        return result_success(table_unpack(r, 2))
-    else
-        return result_failure(r[2])
-    end
+    return result_pack(pcall(action, ...))
+end
+
+--- @param thread thread
+--- @param ... any
+--- @return result
+local function result_resuming(thread, ...)
+    expect(1, thread, 'thread')
+    return result_pack(coroutine_resume(thread, ...))
 end
 
 library.result = {
     success = result_success;
     failure = result_failure;
     catching = result_catching;
+    resuming = result_resuming;
+    pack = result_pack;
 }
 
 ----------------------------------------------------
