@@ -201,12 +201,28 @@ local function addKeyToKeyringList(key, name)
     authKeysList:addItem(text, nil, nil, { key=key, name=name })
 end
 
+local function getLocalAddress(stats)
+    local localAddress = stats.localAddress
+    if localAddress then
+        return localAddress
+    end
+    local advanced = stats.advanced
+    if advanced then
+        return advanced.localAddress
+    end
+end
+
 basalt.setVariable("register", function()
     local stats = statsProperty.value
     if stats then
         job.async(function()
             local hostKey = stargate.register(vault.public_key(), vault.get_name())
-            local name = addresses.getname_by_key(stats.solarSystem)
+            local localAddress = getLocalAddress(stats)
+            local name
+            if localAddress then
+                name = addresses.getname(localAddress)
+            end
+            name = name or addresses.getname_by_key(stats.solarSystem)
             if keyring.trust(hostKey, name) then
                 addKeyToKeyringList(hostKey, name)
             end
@@ -423,8 +439,9 @@ local function updateStats(stats)
     generationLabel:setText(tostring(stats.basic.generation))
     typeLabel:setText(tostring(stats.basic.type))
     variantLabel:setText(tostring(stats.basic.variant))
-    if stats.advanced then
-        localAddressLabel:setText(addresses.tostring(stats.advanced.localAddress))
+    local localAddress = getLocalAddress(stats)
+    if localAddress then
+        localAddressLabel:setText(addresses.tostring(localAddress))
     else
         localAddressLabel:setText("N/A")
     end

@@ -5,17 +5,22 @@ local AUTHORIZED_KEYS_FILE = "keyring.txt"
 
 local base64 = require 'ktlo.base64'
 
+local function read_key(line)
+    local key, name = line:match "^([%w+=/]+)%s+(.+)$"
+    if key then
+        return key, name
+    else
+        return line
+    end
+end
+
 local authorizedKeys = {}
 do
     local file = io.open(AUTHORIZED_KEYS_FILE, 'r')
     if file then
         for line in file:lines('l') do
-            local key, name = line:match "^([%w+=/]+)%s+(.+)$"
-            if key then
-                authorizedKeys[base64.decode(key)] = {key=key, name=name}
-            else
-                authorizedKeys[base64.decode(line)] = {key=line}
-            end
+            local key, name = read_key(line)
+            authorizedKeys[base64.decode(key)] = {key=key, name=name}
         end
         file:close()
     end
@@ -26,6 +31,8 @@ local keyring = {
 }
 
 -----------------------------------------------
+
+keyring.read_key = read_key
 
 function keyring.get_all()
     local result = {}

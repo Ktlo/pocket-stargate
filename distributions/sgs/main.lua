@@ -76,10 +76,14 @@ settings.define("enableAudit", {
     type = "boolean",
 })
 
+settings.define("psg.localAddress", {
+    description = "Local stargate address",
+    default = nil,
+    type = "table",
+})
+
 local galaxies = settings.get("galaxies", {"sgjourney:milky_way"})
-
 local solarSystem = settings.get("solarSystem", "sgjourney:terra")
-
 local preferManual = settings.get("preferManual", false)
 local autoIrisProperty = concurrent.property(settings.get("autoIris", true))
 local enableAuditProperty = concurrent.property(settings.get("enableAudit", false))
@@ -127,7 +131,7 @@ job.run(function()
 local mStargateGeneration = stargate.getStargateGeneration()
 local mStargateVariant = stargate.getStargateVariant()
 local mStargateType = stargate.getStargateType()
-local mLocalAddress = callOrDefault(stargate.getLocalAddress, {})
+local mLocalAddress = settings.get("psg.localAddress") or callOrDefault(stargate.getLocalAddress, nil)
 
 local emptyJob = job.async(function()end)
 
@@ -187,6 +191,7 @@ local function buildDiscoverEvent()
     result.version = version
     result.galaxies = galaxies
     result.solarSystem = solarSystem
+    result.localAddress = mLocalAddress
     result.tier = tier
     local dialedAddress = dialedAddressProperty.value
     local addressBuffer = addressBufferProperty.value

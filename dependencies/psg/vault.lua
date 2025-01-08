@@ -29,7 +29,28 @@ local function open_private_key()
     return textutils.unserialise(contentString)
 end
 
-local publicKey
+local function open_public_key()
+    local file = io.open(PUBLIC_KEY_FILE, 'r')
+    if not file then
+        error("failed to open public key file: "..PUBLIC_KEY_FILE)
+    end
+    return keyring.read_key(file:read('l'))
+end
+
+local function save_public_key(key, name)
+    local file = io.open(PUBLIC_KEY_FILE, 'w')
+    if not file then
+        error("failed to open public key file: "..PUBLIC_KEY_FILE)
+    end
+    file:write(base64.encode(key))
+    if name then
+        file:write(" ")
+        file:write(name)
+    end
+    file:close()
+end
+
+local publicKey, name
 if not fs.exists(PRIVATE_KEY_FILE) then
     local privateKey = random.random(32)
     local keyInfo = {
@@ -38,21 +59,13 @@ if not fs.exists(PRIVATE_KEY_FILE) then
     }
     publicKey = ed25519.publicKey(privateKey)
     save_private_key(keyInfo)
-    local file = io.open(PUBLIC_KEY_FILE, 'w')
-    if not file then
-        error("failed to open public key file: "..PUBLIC_KEY_FILE)
-    end
-    file:write(base64.encode(publicKey))
-    file:close()
+    save_public_key(publicKey)
     isEncryprted = false
 else
-    local file = io.open(PUBLIC_KEY_FILE, 'r')
-    if not file then
-        error("failed to open public key file: "..PUBLIC_KEY_FILE)
-    end
+    local key
+    key, name = open_public_key()
+    publicKey = base64.decode(key)
     isEncryprted = open_private_key().encrypted
-    publicKey = base64.decode(file:read('a'))
-    file:close()
 end
 
 local vault = {}
@@ -66,7 +79,7 @@ end
 local serializeOpts = { compact = true }
 
 function vault.public_key()
-    return base64.encode(publicKey)
+    return base64.encode(publicKey), name
 end
 
 function vault.verify(nonce, response)
@@ -110,7 +123,6 @@ function vault.encrypt_key(password)
         encrypted = true;
         salt = base64.encode(salt);
         key = base64.encode(encrypted);
-        name = content.name;
     }
     save_private_key(keyInfo)
     isEncryprted = true
@@ -130,9 +142,9 @@ function vault.private_key(password)
         if publicKey ~= actualPublicKey then
             return nil, "wrong password"
         end
-        return decrypted, content.name
+        return decrypted
     else
-        return encodedKey, content.name
+        return encodedKey
     end
 end
 
@@ -145,7 +157,6 @@ function vault.decrypt_key(password)
     local keyInfo = {
         encrypted = false;
         key = base64.encode(key);
-        name = reason;
     }
     save_private_key(keyInfo)
     isEncryprted = false
@@ -166,13 +177,12 @@ function vault.make_auth_request(privateKey, session)
 end
 
 function vault.get_name()
-    return open_private_key().name
+    return name
 end
 
-function vault.set_name(name)
-    local keyInfo = open_private_key()
-    keyInfo.name = name
-    save_private_key(keyInfo)
+function vault.set_name(new_name)
+    name = new_name
+    save_public_key(publicKey, name)
 end
 
 ----------------------------------------------------------
