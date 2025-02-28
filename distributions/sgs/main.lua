@@ -70,6 +70,24 @@ settings.define("autoIris", {
     type = "boolean",
 })
 
+settings.define("psg.autoClose", {
+    description = "Close connectrion after N seconds from last traveller enters the Stargate",
+    default = 0,
+    type = "number",
+})
+
+settings.define("psg.irisProtect", {
+    description = "Close connectrion after N iris hits from an otherside of a connection",
+    default = 0,
+    type = "number",
+})
+
+settings.define("psg.noKawoosh", {
+    description = "Enable protection from kawoosh using iris",
+    default = false,
+    type = "boolean",
+})
+
 settings.define("enableAudit", {
     description = "Write audit events into local journal",
     default = false,
@@ -86,6 +104,9 @@ local galaxies = settings.get("galaxies", {"sgjourney:milky_way"})
 local solarSystem = settings.get("solarSystem", "sgjourney:terra")
 local preferManual = settings.get("preferManual", false)
 local autoIrisProperty = concurrent.property(settings.get("autoIris", true))
+local autoCloseProperty = concurrent.property(settings.get("psg.autoClose", 0))
+local irisProtectProperty = concurrent.property(settings.get("psg.irisProtect", 0))
+local noKawooshProperty = concurrent.property(settings.get("psg.noKawoosh", false))
 local enableAuditProperty = concurrent.property(settings.get("enableAudit", false))
 
 local id = os.getComputerID()
@@ -132,6 +153,7 @@ local mStargateGeneration = stargate.getStargateGeneration()
 local mStargateVariant = stargate.getStargateVariant()
 local mStargateType = stargate.getStargateType()
 local mLocalAddress = settings.get("psg.localAddress") or callOrDefault(stargate.getLocalAddress, nil)
+local mIrisThud = 0
 
 local emptyJob = job.async(function()end)
 
@@ -149,12 +171,12 @@ job.livedata.subscribe(isIncomingConnectionProperty, function(isIncomingConnecti
     playAlarmTask:cancel()
     if isIncomingConnection then
         if autoIrisProperty.value and irisProperty.value then
-            stargate.closeIris()
+            callOrDefault(stargate.closeIris)
         end
         playAlarmTask = playSound("offworld.dfpwm")
     else
         if autoIrisProperty.value and irisProperty.value then
-            stargate.openIris()
+            callOrDefault(stargate.openIris)
         end
     end
 end)
@@ -184,6 +206,19 @@ local function pollNewValues()
     }
 end
 local pollValuesProperty = concurrent.property(pollNewValues())
+
+-- no kawoosh
+job.livedata.subscribe(isStargateConnectedProperty, function(isConnected)
+    if isConnected and noKawooshProperty.value then
+        callOrDefault(stargate.closeIris)
+    end
+end)
+job.livedata.subscribe(pollValuesProperty, function(values)
+    if noKawooshProperty.value and values.isWormholeOpen and (isStargateDialingOutProperty.value or (not autoIrisProperty.value)) then
+        callOrDefault(stargate.openIris)
+    end
+end)
+
 local function buildDiscoverEvent()
     local result = {}
     local values = pollValuesProperty.value
@@ -308,6 +343,15 @@ job.async(function()
         isStargateDialingOutProperty:set(true)
     end
 end)
+local autoCloseJob = emptyJob
+local function autoCloseRoutine()
+    local autoClose = autoCloseProperty.value
+    if autoClose == 0 then
+        return
+    end
+    sleep(autoClose)
+    stargate.disconnectStargate()
+end
 job.async(function()
     while true do
         os.pullEvent('stargate_reset')
@@ -317,6 +361,15 @@ job.async(function()
         dialedAddressProperty:set({})
         connectedAddressProperty:set({})
         addressBufferProperty:set({})
+        mIrisThud = 0
+        autoCloseJob:cancel()
+    end
+end)
+job.async(function()
+    while true do
+        os.pullEvent('stargate_deconstructing_entity')
+        autoCloseJob:cancel()
+        autoCloseJob = job.async(autoCloseRoutine)
     end
 end)
 
@@ -572,6 +625,11 @@ function security.getState()
             irisDurability = irisDurabilityProperty.value;
             irisMaxDurability = irisMaxDurabilityProperty.value;
         };
+        protocols = {
+            autoClose = autoCloseProperty.value;
+            irisProtect = irisProtectProperty.value;
+            noKawoosh = noKawooshProperty.value;
+        };
     }
     if tier >= 3 then
         result.advanced = {
@@ -684,6 +742,27 @@ function security.setAutoIris(value)
 end
 job.livedata.subscribe(autoIrisProperty, function(value)
     broadcastSetting('auto_iris', value)
+end)
+
+function security.setAutoClose(value)
+    autoCloseProperty:set(value)
+end
+job.livedata.subscribe(autoCloseProperty, function(value)
+    broadcastSetting('auto_close', value)
+end)
+
+function security.setIrisProtect(value)
+    irisProtectProperty:set(value)
+end
+job.livedata.subscribe(irisProtectProperty, function(value)
+    broadcastSetting('iris_protect', value)
+end)
+
+function security.setNoKawoosh(value)
+    noKawooshProperty:set(value)
+end
+job.livedata.subscribe(noKawooshProperty, function(value)
+    broadcastSetting('no_kawoosh', value)
 end)
 
 function security.setEnableAudit(value)
@@ -845,11 +924,31 @@ job.livedata.subscribe(autoIrisProperty, function(value)
     settings.save()
 end)
 
+job.livedata.subscribe(autoCloseProperty, function(value)
+    settings.set("psg.autoClose", value)
+    settings.save()
+end)
+
+job.livedata.subscribe(irisProtectProperty, function(value)
+    settings.set("psg.irisProtect", value)
+    settings.save()
+end)
+
+job.livedata.subscribe(noKawooshProperty, function(value)
+    settings.set("psg.noKawoosh", value)
+    settings.save()
+end)
+
 if stargate.getIris then
     job.async(function()
         while true do
             os.pullEvent('iris_thud')
             irisDurabilityProperty:set(irisDurabilityProperty.value - 1)
+            mIrisThud = mIrisThud + 1
+            local irisProtect = irisProtectProperty.value
+            if irisProtect ~= 0 and irisProtect <= mIrisThud then
+                stargate.disconnectStargate()
+            end
         end
     end)
 

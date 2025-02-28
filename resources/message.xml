@@ -1,4 +1,4 @@
-<frame id="window" bg="lightBlue">
+<frame id="window" bg="lime">
     <pane width="parent.w" height="1" bg="blue" />
     <label id="title" x="(parent.w - self.w)/2" fg="white" text="" />
     <button id="close" x="parent.w" width="1" height="1" bg="red" fg="white" text="X" />

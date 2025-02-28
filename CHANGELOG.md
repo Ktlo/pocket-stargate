@@ -1,3 +1,19 @@
+## v1.3.0 2025-03-01
+
+### Added
+- New tab in the SSG interface called "*Protos*" (Protocols).
+- Auto close security protocol. If the protocol is enabled, it will close the outgoing connection after N seconds from the last treveller passthrough. The protocol can be configured in the SSG interface.
+- Iris protect security protocol. If the protocol is enabled, it will try to disconnect the stargate after N iris hits from the other side. This is useful for preventing iris destruction by snowball spamming. The protocol can be configured in the SSG interface.
+- No kawoosh security protocol. The protocol enables a safety precaution that keeps the iris closed while the wormhole isn't established yet. The protocol can be enabled in the SSG interface.
+
+### Changed
+- Message modal windows are are lime now.
+- Moved "*Auto iris*" setting to the new tap "*Protos*" from the tab "*Settings*"
+- Renamed tab "*Settings*" to "*Sets*"
+
+### Fixed
+- SGS crash if the stargate doesn't support iris and the auto iris security protocol is enabled.
+
 ## v1.2.0 2025-01-08
 
 ### Added

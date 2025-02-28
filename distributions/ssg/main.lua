@@ -48,6 +48,7 @@ basalt.setVariable("selectFrame", function(self)
         dom { 'root', 'main', 'keys' },
         dom { 'root', 'main', 'audit' },
         dom { 'root', 'main', 'settings' },
+        dom { 'root', 'main', 'protocols' },
         dom { 'root', 'main', 'filter' },
     }
     for i, tab in ipairs(tabs) do
@@ -166,7 +167,10 @@ basalt.setVariable("setFilterMode", function(element)
     end)
 end)
 
-local energyTargetElement, networkIdElement, isNetRestrictedElement, autoIrisElement, enableAuditElement
+local energyTargetElement, networkIdElement
+
+local autoCloseProperty = concurrent.property(0)
+local irisProtectProperty = concurrent.property(0)
 
 local function setEnergyTargetText(energyTarget)
     energyTargetElement:setText(tostring(energyTarget).." FE")
@@ -207,6 +211,63 @@ basalt.setVariable("setAutoIris", function(element)
     local value = checkboxButtonState(element)
     job.async(function()
         client.setAutoIris(not value)
+    end)
+end)
+
+basalt.setVariable("helpAutoIris", function()
+    job.async(function()
+        modal.message("Auto Iris",
+        [[If enabled, closes the iris on incoming wormhole and waits authentification from the other side of the current connection.]]
+    )
+    end)
+end)
+
+basalt.setVariable("setAutoClose", function(element)
+    job.async(function()
+        local result = modal.number(autoCloseProperty.value)
+        if result then
+            client.setAutoClose(result)
+        end
+    end)
+end)
+
+basalt.setVariable("helpAutoClose", function()
+    job.async(function()
+        modal.message("Auto Close",
+        [[If enabled, closes the outgoing connection after N seconds from the last treveller passthrough.]]
+    )
+    end)
+end)
+
+basalt.setVariable("setIrisProtect", function(element)
+    job.async(function()
+        local result = modal.number(irisProtectProperty.value)
+        if result then
+            client.setIrisProtect(result)
+        end
+    end)
+end)
+
+basalt.setVariable("helpIrisProtect", function()
+    job.async(function()
+        modal.message("Iris Protect",
+        [[If enabled, tries to disconnect the stargate after N iris hits from the other side. This is useful for preventing iris destruction by snowball spamming.]]
+    )
+    end)
+end)
+
+basalt.setVariable("setNoKawoosh", function(element)
+    local value = checkboxButtonState(element)
+    job.async(function()
+        client.setNoKawoosh(not value)
+    end)
+end)
+
+basalt.setVariable("helpNoKawoosh", function()
+    job.async(function()
+        modal.message("No Kawoosh",
+        [[Enables a safety precaution that keeps the iris closed while the wormhole isn't established yet. (For people that rush to the stargate as soon as possible.)]]
+    )
     end)
 end)
 
@@ -374,12 +435,15 @@ keysList = dom { 'root', 'main', 'keys', 'list' }
 
 energyTargetElement = dom { 'root', 'main', 'settings', 'energyTarget' }
 networkIdElement = dom { 'root', 'main', 'settings', 'advanced', 'networkId' }
-isNetRestrictedElement = dom { 'root', 'main', 'settings', 'advanced', 'isNetRestricted' }
-autoIrisElement = dom { 'root', 'main', 'settings', 'iris', 'autoIris' }
+local isNetRestrictedElement = dom { 'root', 'main', 'settings', 'advanced', 'isNetRestricted' }
 local irisElement = dom { 'root', 'main', 'settings', 'iris', 'iris' }
 local irisDurabilityBarElement = dom { 'root', 'main', 'settings', 'iris', 'irisDurabilityBar' }
 local irisDurabilityElement = dom { 'root', 'main', 'settings', 'iris', 'irisDurability' }
-enableAuditElement = dom { 'root', 'main', 'settings', 'enableAudit' }
+local enableAuditElement = dom { 'root', 'main', 'settings', 'enableAudit' }
+local autoIrisElement = dom { 'root', 'main', 'protocols', 'autoIris' }
+local autoCloseElement = dom { 'root', 'main', 'protocols', 'v1.3', 'autoClose' }
+local irisProtectElement = dom { 'root', 'main', 'protocols', 'v1.3', 'irisProtect' }
+local noKawooshElement = dom { 'root', 'main', 'protocols', 'v1.3', 'noKawoosh' }
 allowlistElement = dom { 'root', 'main', 'filter', 'allowlist', 'list' }
 denylistElement = dom { 'root', 'main', 'filter', 'denylist', 'list' }
 local filterModeElement = dom { 'root', 'main', 'filter', 'mode' }
@@ -568,6 +632,22 @@ local function addKeyToKeylist(event, color)
     keysList:addItem(text, nil, color, { key=key, name=name, fingerprint=fingerprint })
 end
 
+local function setZeroedText(object, value, units)
+    if value == 0 then
+        object:setText("DISABLED")
+    else
+        object:setText(value.." "..units)
+    end
+end
+
+job.livedata.subscribe(autoCloseProperty, function(autoClose)
+    setZeroedText(autoCloseElement, autoClose, "seconds")
+end)
+
+job.livedata.subscribe(irisProtectProperty, function(irisProtect)
+    setZeroedText(irisProtectElement, irisProtect, "hits")
+end)
+
 job.async(function()
     local state = job.retry(5, client.getState)
     local versionLabel = dom { 'root', 'main', 'keys', 'version' }
@@ -597,6 +677,13 @@ job.async(function()
     else
         dom { 'root', 'main', 'settings', 'advanced' }:hide()
         dom { 'root', 'main', 'selector' }:removeItem(4)
+    end
+    local protocols = state.protocols
+    if protocols then
+        autoCloseProperty:set(protocols.autoClose)
+        irisProtectProperty:set(protocols.irisProtect)
+        setButtonCheckbox(noKawooshElement, protocols.noKawoosh)
+        dom { 'root', 'main', 'protocols', 'v1.3' }:show()
     end
     dom { 'root', 'main' }:show()
     initializedProperty:set(true)
@@ -679,6 +766,12 @@ rpc.subscribe_network(modem, SECURITY_EVENT, function(event)
             setButtonCheckbox(isNetRestrictedElement, value)
         elseif setting == 'auto_iris' then
             setButtonCheckbox(autoIrisElement, value)
+        elseif setting == 'auto_close' then
+            autoCloseProperty:set(value)
+        elseif setting == 'iris_protect' then
+            irisProtectProperty:set(value)
+        elseif setting == 'no_kawoosh' then
+            setButtonCheckbox(noKawooshElement, value)
         elseif setting == 'enable_audit' then
             setButtonCheckbox(enableAuditElement, value)
         elseif setting == 'iris' then

@@ -3,7 +3,8 @@
         <menubar id="selector" onChange="selectFrame" width="parent.w">
             <item text="Keys"/>
             <item text="Audit"/>
-            <item text="Settings"/>
+            <item text="Sets"/>
+            <item text="Protos"/>
             <item text="Filter"/>
         </menubar>
         <frame id="keys" y="2" height="parent.h - 1">
@@ -49,11 +50,9 @@
                 <label id="iris" x="2" y="2" fg="blue" text="?"/>
                 <progressbar id="irisDurabilityBar" x="2" y="3" width="parent.w - 2" bg="red" progressColor="green"/>
                 <label id="irisDurability" x="(parent.w-self.w)/2" y="4" fg="blue" text="0/0"/>
-                <label x="2" y="5" text="Auto iris"/>
-                <button id="autoIris" x="21" y="5" width="1" height="1" fg="black" bg="white" text="" onClick="setAutoIris"/>
-                <label x="2" y="7" text="Iris state"/>
-                <button x="14" y="7" width="6" height="1" bg="green" text="OPEN" onClick="openIris"/>
-                <button x="21" y="7" width="6" height="1" bg="red" text="CLOSE" onClick="closeIris"/>
+                <label x="2" y="6" text="Iris state"/>
+                <button x="14" y="6" width="6" height="1" bg="green" text="OPEN" onClick="openIris"/>
+                <button x="21" y="6" width="6" height="1" bg="red" text="CLOSE" onClick="closeIris"/>
             </frame>
             <frame id="advanced" y="16">
                 <label x="(parent.w-self.w)/2" y="1" text="Advanced" fg="gray"/>
@@ -62,6 +61,24 @@
                 <label id="networkId" x="2" y="3" text="?" fg="blue"/>
                 <label x="2" y="5" text="Network Restricted"/>
                 <button id="isNetRestricted" x="21" y="5" width="1" height="1" fg="black" bg="white" text="" onClick="setNetRestricted"/>
+            </frame>
+        </frame>
+        <frame id="protocols" y="2" height="parent.h - 1" visible="false">
+            <label x="2" y="2" text="Auto Iris"/>
+            <button x="19" y="2" width="1" height="1" text="?" onClick="helpAutoIris"/>
+            <button id="autoIris" x="21" y="2" width="1" height="1" fg="black" bg="white" text="" onClick="setAutoIris"/>
+            <frame id="v1.3" x="2" y="4" visible="false">
+                <label text="Auto Close"/>
+                <button x="18" width="1" height="1" text="?" onClick="helpAutoClose"/>
+                <button x="20" width="5" height="1" text="SET" onClick="setAutoClose"/>
+                <label id="autoClose" y="2" fg="blue"/>
+                <label y="4" text="Iris Protect"/>
+                <button x="18" y="4" width="1" height="1" text="?" onClick="helpIrisProtect"/>
+                <button x="20" y="4" width="5" height="1" text="SET" onClick="setIrisProtect"/>
+                <label id="irisProtect" y="5" fg="blue"/>
+                <label y="7" text="No Kawoosh"/>
+                <button x="18" y="7" width="1" height="1" text="?" onClick="helpNoKawoosh"/>
+                <button id="noKawoosh" x="20" y="7" width="1" height="1" fg="black" bg="white" text="" onClick="setNoKawoosh"/>
             </frame>
         </frame>
         <frame id="filter" y="2" height="parent.h - 1" visible="false">
