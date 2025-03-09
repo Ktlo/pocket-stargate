@@ -1,3 +1,9 @@
+## v1.3.1 2025-03-09
+
+### Fixed
+- SGS crash on attempt to encode a symbol that the stargate can not encode.
+- Manual dialing is adjusted for Classic and Universe stargate types.
+
 ## v1.3.0 2025-03-01
 
 ### Added

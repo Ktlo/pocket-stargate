@@ -433,6 +433,9 @@ end
 
 local function encodeSymbolManual(symbol, slow)
     local current = stargate.getCurrentSymbol()
+    if current == -1 then
+        current = 23.5
+    end
     local diff
     if symbol > current then
         local currentAlt = current + 39
@@ -463,31 +466,25 @@ local function encodeSymbolManual(symbol, slow)
     if slow then
         os.sleep(1)
     end
-        stargate.openChevron()
-        if slow then
-            os.sleep(0.5)
-            if symbol ~= 0 then
-                stargate.encodeChevron()
-            end
-            os.sleep(0.5)
+    (stargate.openChevron or stargate.encodeChevron)()
+    if slow and stargate.openChevron then
+        os.sleep(0.5)
+        if symbol ~= 0 then
+            stargate.encodeChevron()
         end
-        stargate.closeChevron()
+        os.sleep(0.5)
+    end
+    callOrDefault(stargate.closeChevron)
     if slow then
         os.sleep(1)
     end
 end
 
-local canEngageImmediatly = {
-    ["sgjourney:milky_way_stargate"] = true;
-    ["sgjourney:classic_stargate"] = true;
-    ["sgjourney:tollan_stargate"] = true;
-}
-
-local isMW = mStargateType == "sgjourney:milky_way_stargate"
-canEngageImmediatly = canEngageImmediatly[mStargateType]
+local canDialManually = stargate.getCurrentSymbol
+local canEngageImmediatly = stargate.engageSymbol
 
 local function encodeSymbol(symbol, slow)
-    if preferManual and isMW and slow then
+    if preferManual and canDialManually and slow then
         encodeSymbolManual(symbol, slow)
     elseif tier >= 2 then
         local engagedTarget = engagedChevronsProperty.value + 1
@@ -500,7 +497,7 @@ local function encodeSymbol(symbol, slow)
         if slow or not canEngageImmediatly then
             engagedChevronsProperty:wait_until(function(value) return value == engagedTarget end)
         end
-    elseif isMW then
+    elseif canDialManually then
         encodeSymbolManual(symbol, slow)
     end
     insertDialedSymbol(engagedChevronsProperty.value, symbol)
@@ -529,8 +526,19 @@ job.livedata.determines(isDialingProperty, function()
     end
 end)
 
+local maxSymbol = (
+    {
+        ["sgjourney:milky_way_stargate"] = 38;
+        ["sgjourney:universe_stargate"] = 35;
+    }
+)[mStargateType] or 47
+
 function handlers.engage(symbol)
     if isStargateConnectedProperty.value then
+        return false
+    end
+    symbol = math.floor(symbol)
+    if symbol < 0 or symbol > maxSymbol then
         return false
     end
     local dialedAddress = dialedAddressProperty.value
@@ -561,6 +569,13 @@ function handlers.dial(address, slow)
     if not address then return false end
     if isDialingProperty.value then
         return
+    end
+    for i=1, #address do
+        local symbol = math.floor(address[i])
+        address[i] = symbol
+        if symbol < 0 or symbol > maxSymbol then
+            return false
+        end
     end
     slowDialingEnabled = slow
     local addressBuffer = address
