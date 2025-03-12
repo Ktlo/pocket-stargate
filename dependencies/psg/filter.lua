@@ -69,7 +69,7 @@ local function listAdd(list, method, filename, address)
     if list[str] then
         return false
     end
-    method(address)
+    method(address, false)
     list[str] = address
     local file = assert(io.open(filename, 'a'))
     file:write(str)
@@ -113,7 +113,7 @@ end
 local function listSynch(list, clearMethod, addMethod)
     clearMethod()
     for _, address in pairs(list) do
-        addMethod(address)
+        addMethod(address, false)
     end
 end
 

@@ -1,3 +1,11 @@
+## v1.3.2 2025-03-12
+
+### Fixed
+- Fixed crash caused by stargate filter changes occured in the Stargate Journey 0.6.34 (SSG).
+- Universe stargate is dialed manually for fast mode now (SGS).
+- Universe stargate is dialed in DHD mode for slow mode now (SGS).
+- Buttons for symbols that can't be encoded are visibly disabled now (PSG).
+
 ## v1.3.1 2025-03-09
 
 ### Fixed

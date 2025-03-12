@@ -192,5 +192,7 @@ This script only works on your local machine storage (network storages not suppo
 ## Credits
 
 Base64 lua implementation: https://github.com/iskolbin/lbase64
+
 Basalt GUI library: https://basalt.madefor.cc
+
 CC cryptography: https://github.com/migeyel/ccryptolib

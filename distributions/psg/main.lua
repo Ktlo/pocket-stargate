@@ -250,7 +250,7 @@ end)
 basalt.setVariable("engage", function(self)
     local symbol = tonumber(self:getValue())
     job.async(function()
-        if self:getBackground() ~= colors.orange then
+        if self:getBackground() == colors.gray then
             stargate.engage(symbol)
         end
     end)
@@ -421,14 +421,23 @@ local function populateLookupTable(lookup, data)
     end
 end
 
+local maxSymbolByStargate = {
+    ["sgjourney:universe_stargate"] = 35;
+}
+
 local function updateDialButtons(stats)
     local lookup = {}
     populateLookupTable(lookup, stats.dialedAddress)
     populateLookupTable(lookup, stats.addressBuffer)
-    for i=1, 38 do
+    local maxSymbol = maxSymbolByStargate[stats.basic.type] or 38
+    for i=1, maxSymbol do
         local button = dialFrame:getObject("s"..i)
         local color = lookup[i] and colors.orange or colors.gray
         button:setBackground(color)
+    end
+    for i=maxSymbol + 1, 38 do
+        local button = dialFrame:getObject("s"..i)
+        button:setBackground(colors.black)
     end
     local color = stats.pooPressed and colors.orange or colors.gray
     pooButton:setBackground(color)

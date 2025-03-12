@@ -480,11 +480,14 @@ local function encodeSymbolManual(symbol, slow)
     end
 end
 
+local isUniverseStargate = mStargateType == "sgjourney:universe_stargate"
 local canDialManually = stargate.getCurrentSymbol
 local canEngageImmediatly = stargate.engageSymbol
 
 local function encodeSymbol(symbol, slow)
-    if preferManual and canDialManually and slow then
+    if isUniverseStargate and not slow and canDialManually then
+        encodeSymbolManual(symbol, slow)
+    elseif not isUniverseStargate and preferManual and canDialManually and slow then
         encodeSymbolManual(symbol, slow)
     elseif tier >= 2 then
         local engagedTarget = engagedChevronsProperty.value + 1
@@ -529,6 +532,7 @@ end)
 local maxSymbol = (
     {
         ["sgjourney:milky_way_stargate"] = 38;
+        ["sgjourney:classic_stargate"] = 38;
         ["sgjourney:universe_stargate"] = 35;
     }
 )[mStargateType] or 47
