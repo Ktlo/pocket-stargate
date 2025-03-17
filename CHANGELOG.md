@@ -1,3 +1,11 @@
+## v1.4.0 2025-03-17
+
+### Changed
+- SGS will try to engage symbol directly if this is possible for the fast dialing mode for any stargate type.
+
+### Fixed
+- SGS address buffer is being always emptied when dialing in fast mode via `engageSymbol` function. This is a valid behaviour only when direct engaging is possible.
+
 ## v1.3.2 2025-03-12
 
 ### Fixed

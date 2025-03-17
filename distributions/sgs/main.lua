@@ -482,17 +482,23 @@ end
 
 local isUniverseStargate = mStargateType == "sgjourney:universe_stargate"
 local canDialManually = stargate.getCurrentSymbol
-local canEngageImmediatly = stargate.engageSymbol
+local canEngageImmediatly = tier >= 3 or (
+    {
+        ["sgjourney:milky_way_stargate"] = true;
+        ["sgjourney:classic_stargate"] = true;
+        ["sgjourney:tollan_stargate"] = true;
+    }
+)[mStargateType]
 
 local function encodeSymbol(symbol, slow)
-    if isUniverseStargate and not slow and canDialManually then
+    if isUniverseStargate and not canEngageImmediatly and not slow and canDialManually then
         encodeSymbolManual(symbol, slow)
-    elseif not isUniverseStargate and preferManual and canDialManually and slow then
+    elseif not isUniverseStargate and preferManual and slow and canDialManually then
         encodeSymbolManual(symbol, slow)
     elseif tier >= 2 then
         local engagedTarget = engagedChevronsProperty.value + 1
         coroutine.wrap(function()
-            stargate.engageSymbol(symbol)
+            stargate.engageSymbol(symbol, not slow)
         end)()
         if slow then
             os.sleep(0.5)
