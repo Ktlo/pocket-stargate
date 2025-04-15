@@ -33,6 +33,8 @@ modem = peripheral.getName(modem)
 local client = rpc.client_network(modem, SECURITY_COMMAND, TIMEOUT)
 
 local initializedProperty = concurrent.property(false)
+local modalMutex = concurrent.mutex()
+local modalMutexEvent = concurrent.mutex()
 
 local function dom(path)
     local current = basalt.getActiveFrame()
@@ -40,6 +42,41 @@ local function dom(path)
         current = current:getObject(segment)
     end
     return current
+end
+
+local function auditEventDialog(event)
+    modalMutex:with_lock(function()
+        modal.open(function(frame, future)
+            frame:addLayoutFromString(resources.load("event.xml"))
+            local window = frame:getObject("window")
+            local control = window:getObject("control")
+            control:getObject("exit"):onClick(function()
+                future:complete(nil)
+            end)
+            local eventText = textutils.serialise(event)
+            window:getObject('content'):setText(eventText)
+            local printButton = control:getObject("print")
+            if printer.exists() then
+                printButton:show()
+            end
+            printButton:onClick(function()
+                local context = printer.print("Event", eventText)
+                job.async(function()
+                    while true do
+                        local ok, err = context:continue()
+                        if ok then
+                            break
+                        end
+                        local continue = modalMutexEvent:with_lock(modal.alert, err, "Continue", "Cancel")
+                        if not continue then
+                            context:cancel()
+                            break
+                        end
+                    end
+                end)
+            end)
+        end)
+    end)
 end
 
 basalt.setVariable("selectFrame", function(self)
@@ -113,7 +150,7 @@ end)
 basalt.setVariable("addAddressToFilter", function()
     local listType = selectedFilterListProperty.value
     job.async(function()
-        local newAddress = modal.address()
+        local newAddress = modalMutex:with_lock(modal.address)
         if newAddress then
             if listType == 1 then
                 client.allowlistAdd(newAddress)
@@ -179,7 +216,7 @@ end
 basalt.setVariable("setEnergyTarget", function()
     local init = tonumber(energyTargetElement:getValue():sub(1, -4))
     job.async(function()
-        local result = modal.number(init or 0)
+        local result = modalMutex:with_lock(modal.number, init or 0)
         if result then
             client.setEnergyTarget(result)
         end
@@ -189,7 +226,7 @@ end)
 basalt.setVariable("setNetworkId", function()
     local init = tonumber(networkIdElement:getValue())
     job.async(function()
-        local result = modal.number(init or 0)
+        local result = modalMutex:with_lock(modal.number, init or 0)
         if result then
             client.setNetwork(result)
         end
@@ -216,7 +253,7 @@ end)
 
 basalt.setVariable("helpAutoIris", function()
     job.async(function()
-        modal.message("Auto Iris",
+        modalMutex:with_lock(modal.message, "Auto Iris",
         [[If enabled, closes the iris on incoming wormhole and waits authentification from the other side of the current connection.]]
     )
     end)
@@ -224,7 +261,7 @@ end)
 
 basalt.setVariable("setAutoClose", function(element)
     job.async(function()
-        local result = modal.number(autoCloseProperty.value)
+        local result = modalMutex:with_lock(modal.number, autoCloseProperty.value)
         if result then
             client.setAutoClose(result)
         end
@@ -233,7 +270,7 @@ end)
 
 basalt.setVariable("helpAutoClose", function()
     job.async(function()
-        modal.message("Auto Close",
+        modalMutex:with_lock(modal.message, "Auto Close",
         [[If enabled, closes the outgoing connection after N seconds from the last treveller passthrough.]]
     )
     end)
@@ -241,7 +278,7 @@ end)
 
 basalt.setVariable("setIrisProtect", function(element)
     job.async(function()
-        local result = modal.number(irisProtectProperty.value)
+        local result = modalMutex:with_lock(modal.number, irisProtectProperty.value)
         if result then
             client.setIrisProtect(result)
         end
@@ -250,7 +287,7 @@ end)
 
 basalt.setVariable("helpIrisProtect", function()
     job.async(function()
-        modal.message("Iris Protect",
+        modalMutex:with_lock(modal.message, "Iris Protect",
         [[If enabled, tries to disconnect the stargate after N iris hits from the other side. This is useful for preventing iris destruction by snowball spamming.]]
     )
     end)
@@ -265,8 +302,38 @@ end)
 
 basalt.setVariable("helpNoKawoosh", function()
     job.async(function()
-        modal.message("No Kawoosh",
+        modalMutex:with_lock(modal.message, "No Kawoosh",
         [[Enables a safety precaution that keeps the iris closed while the wormhole isn't established yet. (For people that rush to the stargate as soon as possible.)]]
+    )
+    end)
+end)
+
+basalt.setVariable("setPreferManual", function(element)
+    local value = checkboxButtonState(element)
+    job.async(function()
+        client.setPreferManual(not value)
+    end)
+end)
+
+basalt.setVariable("helpPreferManual", function()
+    job.async(function()
+        modalMutex:with_lock(modal.message, "Manual Dial",
+        [[Makes the stargate use the manual dialing mode even if interface is capable enough for DHD dialing mode. This setting is ignored if advanced dialing mode is on.]]
+    )
+    end)
+end)
+
+basalt.setVariable("setAdvancedDial", function(element)
+    local value = checkboxButtonState(element)
+    job.async(function()
+        client.setAdvancedDial(not value)
+    end)
+end)
+
+basalt.setVariable("helpAdvancedDial", function()
+    job.async(function()
+        modalMutex:with_lock(modal.message, "Advanced Dial",
+        [[Makes the stargate always use the direct dialing mode. This dialing mode works only with an advanced crystal interface.]]
     )
     end)
 end)
@@ -294,12 +361,7 @@ local newAuditEventsProperty = concurrent.property(0)
 local auditPageNumberProperty = concurrent.property(1)
 local auditDirectionProperty = concurrent.property('tail')
 local shouldFetchAuditProperty = concurrent.property(false)
-local auditListElement, auditDirectionElement, auditEventWindow
-
-basalt.setVariable("auditEventBack", function()
-    dom { 'root', 'main' }:enable()
-    auditEventWindow:hide()
-end)
+local auditListElement, auditDirectionElement
 
 local function getAuditListElement()
     if auditListElement then
@@ -326,14 +388,14 @@ basalt.setVariable("switchAuditDirection", function()
     auditDirectionProperty:set(direction)
 end)
 
-local auditEventDialog
-
 basalt.setVariable("auditShowEvent", function()
     local list = getAuditListElement()
     local i = list:getItemIndex()
     if i then
         local item = list:getItem(i)
-        auditEventDialog(item.args[1])
+        job.async(function()
+            auditEventDialog(item.args[1])
+        end)
     end
 end)
 
@@ -353,28 +415,6 @@ basalt.setVariable("auditDeletePage", function()
     end)
 end)
 
-basalt.setVariable("printAuditEvent", function()
-    local conentElement = dom { 'root', 'event', 'content' }
-    local context = printer.print("Event", conentElement:getValue())
-    local eventFrame = dom { 'root', 'event' }
-    eventFrame:disable()
-    job.async(function()
-        while true do
-            local ok, err = context:continue()
-            if ok then
-                break
-            end
-            local continue = modal.alert(err, "Continue", "Cancel")
-            if not continue then
-                context:cancel()
-                break
-            end
-        end
-    end):finnalize(function()
-        eventFrame:enable()
-    end)
-end)
-
 basalt.setVariable("printAuditPage", function()
     local items = getAuditListElement():getAll()
     local events = {}
@@ -388,7 +428,7 @@ basalt.setVariable("printAuditPage", function()
             if ok then
                 break
             end
-            local continue = modal.alert(err, "Continue", "Cancel")
+            local continue = modalMutex:with_lock(modal.alert, err, "Continue", "Cancel")
             if not continue then
                 context:cancel()
                 break
@@ -415,20 +455,8 @@ job.livedata.subscribe(selectedFilterListProperty, function(index)
     end
 end)
 
-auditEventWindow = dom { 'root', 'event' }
-
 if printer.exists() then
-    auditEventWindow:getObject('control'):getObject('print'):show()
     dom { 'root', 'main', 'audit', 'op', 'print' }:show()
-end
-
-auditEventDialog = function(event)
-    local main = dom { 'root', 'main' }
-    local content = auditEventWindow:getObject('content')
-    content:setText(textutils.serialise(event))
-    main:disable()
-    auditEventWindow:show()
-    auditEventWindow:setFocus()
 end
 
 keysList = dom { 'root', 'main', 'keys', 'list' }
@@ -444,6 +472,8 @@ local autoIrisElement = dom { 'root', 'main', 'protocols', 'autoIris' }
 local autoCloseElement = dom { 'root', 'main', 'protocols', 'v1.3', 'autoClose' }
 local irisProtectElement = dom { 'root', 'main', 'protocols', 'v1.3', 'irisProtect' }
 local noKawooshElement = dom { 'root', 'main', 'protocols', 'v1.3', 'noKawoosh' }
+local preferManualElement = dom { 'root', 'main', 'protocols', 'v1.5', 'preferManual' }
+local advancedDialElement = dom { 'root', 'main', 'protocols', 'v1.5', 'advancedDial' }
 allowlistElement = dom { 'root', 'main', 'filter', 'allowlist', 'list' }
 denylistElement = dom { 'root', 'main', 'filter', 'denylist', 'list' }
 local filterModeElement = dom { 'root', 'main', 'filter', 'mode' }
@@ -684,6 +714,12 @@ job.async(function()
         irisProtectProperty:set(protocols.irisProtect)
         setButtonCheckbox(noKawooshElement, protocols.noKawoosh)
         dom { 'root', 'main', 'protocols', 'v1.3' }:show()
+        local dial = protocols.dial
+        if dial then
+            setButtonCheckbox(preferManualElement, dial.preferManual)
+            setButtonCheckbox(advancedDialElement, dial.advancedDial)
+            dom { 'root', 'main', 'protocols', 'v1.5' }:show()
+        end
     end
     dom { 'root', 'main' }:show()
     initializedProperty:set(true)
@@ -772,6 +808,10 @@ rpc.subscribe_network(modem, SECURITY_EVENT, function(event)
             irisProtectProperty:set(value)
         elseif setting == 'no_kawoosh' then
             setButtonCheckbox(noKawooshElement, value)
+        elseif setting == 'prefer_manual' then
+            setButtonCheckbox(preferManualElement, value)
+        elseif setting == 'advanced_dial' then
+            setButtonCheckbox(advancedDialElement, value)
         elseif setting == 'enable_audit' then
             setButtonCheckbox(enableAuditElement, value)
         elseif setting == 'iris' then

@@ -64,6 +64,12 @@ settings.define("preferManual", {
     type = "boolean",
 })
 
+settings.define("psg.advancedDial", {
+    description = "Prefer direct encoding if possible",
+    default = false,
+    type = "boolean",
+})
+
 settings.define("autoIris", {
     description = "Enable automatic iris activation on incoming wormhole",
     default = true,
@@ -102,7 +108,8 @@ settings.define("psg.localAddress", {
 
 local galaxies = settings.get("galaxies", {"sgjourney:milky_way"})
 local solarSystem = settings.get("solarSystem", "sgjourney:terra")
-local preferManual = settings.get("preferManual", false)
+local preferManualProperty = concurrent.property(settings.get("preferManual", false))
+local advancedDialProperty = concurrent.property(settings.get("psg.advancedDial", false))
 local autoIrisProperty = concurrent.property(settings.get("autoIris", true))
 local autoCloseProperty = concurrent.property(settings.get("psg.autoClose", 0))
 local irisProtectProperty = concurrent.property(settings.get("psg.irisProtect", 0))
@@ -490,16 +497,23 @@ local canEngageImmediatly = tier >= 3 or (
     }
 )[mStargateType]
 
+local function doEngage(symbol, direct)
+    coroutine.wrap(function()
+        stargate.engageSymbol(symbol, direct)
+    end)()
+end
+
 local function encodeSymbol(symbol, slow)
-    if isUniverseStargate and not canEngageImmediatly and not slow and canDialManually then
+    if advancedDialProperty.value and canEngageImmediatly and slow then
+        doEngage(symbol, true)
+        os.sleep(0.5)
+    elseif isUniverseStargate and not canEngageImmediatly and not slow and canDialManually then
         encodeSymbolManual(symbol, slow)
-    elseif not isUniverseStargate and preferManual and slow and canDialManually then
+    elseif not isUniverseStargate and preferManualProperty.value and slow and canDialManually then
         encodeSymbolManual(symbol, slow)
     elseif tier >= 2 then
         local engagedTarget = engagedChevronsProperty.value + 1
-        coroutine.wrap(function()
-            stargate.engageSymbol(symbol, not slow)
-        end)()
+        doEngage(symbol, not slow)
         if slow then
             os.sleep(0.5)
         end
@@ -654,6 +668,10 @@ function security.getState()
             autoClose = autoCloseProperty.value;
             irisProtect = irisProtectProperty.value;
             noKawoosh = noKawooshProperty.value;
+            dial = {
+                preferManual = preferManualProperty.value;
+                advancedDial = advancedDialProperty.value;
+            };
         };
     }
     if tier >= 3 then
@@ -761,6 +779,20 @@ end
 function security.denylistSync()
     filter.denylist_synch()
 end
+
+function security.setPreferManual(value)
+    preferManualProperty:set(value)
+end
+job.livedata.subscribe(preferManualProperty, function(value)
+    broadcastSetting('prefer_manual', value)
+end)
+
+function security.setAdvancedDial(value)
+    advancedDialProperty:set(value)
+end
+job.livedata.subscribe(advancedDialProperty, function(value)
+    broadcastSetting('advanced_dial', value)
+end)
 
 function security.setAutoIris(value)
     autoIrisProperty:set(value)
@@ -941,6 +973,16 @@ rpc.server(rpc.simple_commands(otherside), stargateMessageExchanger)
 
 job.livedata.subscribe(enableAuditProperty, function(value)
     settings.set("enableAudit", value)
+    settings.save()
+end)
+
+job.livedata.subscribe(preferManualProperty, function(value)
+    settings.set("preferManual", value)
+    settings.save()
+end)
+
+job.livedata.subscribe(advancedDialProperty, function(value)
+    settings.set("psg.advancedDial", value)
     settings.save()
 end)
 

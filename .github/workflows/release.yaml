@@ -27,6 +27,8 @@ jobs:
         run: python packer.py psg
       - name: Build SSG
         run: python packer.py ssg
+      - name: Build ASN
+        run: python packer.py asn
       - name: Build TSG
         run: python packer.py tsg
       - name: Build ME portal
@@ -41,6 +43,8 @@ jobs:
             out/executables/install_psg.lua
             out/executables/ssg.lua
             out/executables/install_ssg.lua
+            out/executables/asn.lua
+            out/executables/install_asn.lua
             out/executables/tsg.lua
             out/executables/install_tsg.lua
             out/executables/portal.lua

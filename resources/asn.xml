@@ -1,0 +1,30 @@
+<frame id="root">
+    <frame id="main">
+        <menubar onChange="selectFrame" width="parent.w">
+            <item text="Edit"/>
+            <item text="File"/>
+        </menubar>
+        <frame id="edit" y="2" height="parent.h - 1">
+            <menubar x="2" y="2" onChange="selectList" width="parent.w - 2">
+                <item text="Position"/>
+                <item text="Identity"/>
+            </menubar>
+            <list id="position" x="2" y="3" width="parent.w - 3" height="parent.h - 8"/>
+            <list id="identity" x="2" y="3" width="parent.w - 3" height="parent.h - 8" visible="false"/>
+            <button x="parent.w - 1" y="3" width="1" height="1" text="" onClick="up"/>
+            <button x="parent.w - 1" y="parent.h - 6" width="1" height="1" text="" onClick="down"/>
+            <pane x="parent.w - 1" y="4" width="1" height="parent.h - 10" bg="black"/>
+            <button x="parent.w/2 - 7" y="parent.h - 5" width="6" height="1" bg="orange" text=" up " onClick="moveUp"/>
+            <button x="parent.w/2 + 2" y="parent.h - 5" width="6" height="1" bg="blue" text="down" onClick="moveDown"/>
+            <button x="2" y="parent.h - 3" width="parent.w/3 - 2" bg="green" text="Add" onClick="addRecord"/>
+            <button x="parent.w/3 + 1" y="parent.h - 3" width="parent.w/3 - 2" bg="yellow" text="Edit" onClick="editRecord"/>
+            <button x="2*parent.w/3 + 1" y="parent.h - 3" width="parent.w/3 - 2" bg="red" text="Delete" onClick="deleteRecord"/>
+        </frame>
+        <frame id="file" y="2" height="parent.h - 1" visible="false">
+            <label x="2" y="2" text="Current addressbook file"/>
+            <input id="filepath" x="2" y="3" width="parent.w - 2"/>
+            <button x="2" y="parent.h - 3" width="parent.w/2 - 2" bg="lime" text="Save" onClick="saveAll"/>
+            <label id="version" x="(parent.w - self.w)/2" y="parent.h" fg="gray"/>
+        </frame>
+    </frame>
+</frame>

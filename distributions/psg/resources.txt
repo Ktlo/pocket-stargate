@@ -4,3 +4,4 @@ message.xml
 passwd.xml
 chpass.xml
 text.xml
+vault.xml

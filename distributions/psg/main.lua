@@ -61,6 +61,123 @@ local otherside = rpc.client(othersideExchanger, TIMEOUT)
 basalt.setVariable("addressLength", 0)
 
 local statsProperty = concurrent.property(nil)
+
+local modalMutex = concurrent.mutex()
+local modalMutexVault = concurrent.mutex()
+
+local function synchPasswordButtonText(passwordButtonElement)
+    local passwordButtonText
+    if vault.is_encrypted() then
+        passwordButtonText = "Del password"
+    else
+        passwordButtonText = "Set password"
+    end
+    passwordButtonElement:setText(passwordButtonText)
+end
+
+local function setHostName(element)
+    local name = element:getValue()
+    job.async(function()
+        local newName = modalMutexVault:with_lock(modal.text, name)
+        if newName then
+            element:setText(newName)
+            if newName == "" then
+                newName = nil
+            end
+            vault.set_name(newName)
+        end
+    end)
+end
+
+local function getLocalAddress(stats)
+    local localAddress = stats.localAddress
+    if localAddress then
+        return localAddress
+    end
+    local advanced = stats.advanced
+    if advanced then
+        return advanced.localAddress
+    end
+end
+
+local function vaultSetup(frame, future)
+    frame:addLayoutFromString(resources.load("vault.xml"))
+    local window = frame:getObject('window')
+    window:getObject('exit'):onClick(function()
+        future:complete()
+    end)
+    local passwordButton = window:getObject('password')
+    synchPasswordButtonText(passwordButton)
+    local hostName = window:getObject('hostName')
+    hostName:onClick(setHostName)
+    hostName:setText(vault.get_name() or "")
+    local authKeysList = window:getObject('list')
+    local function addKeyToKeyringList(key, name)
+        local fingerprint = keys.fingerprint(key)
+        local text
+        if name then
+            text = name..' '..fingerprint
+        else
+            text = fingerprint
+        end
+        authKeysList:addItem(text, nil, nil, { key=key, name=name })
+    end
+    local hostKeyElement = window:getObject('hostKey')
+    hostKeyElement:setText(keys.fingerprint(vault.public_key()))
+    local authKeys = keyring.get_all()
+    for _, key in ipairs(authKeys) do
+        addKeyToKeyringList(key.key, key.name)
+    end
+    window:getObject('register'):onClick(function()
+        local stats = statsProperty.value
+        if stats then
+            job.async(function()
+                local hostKey = stargate.register(vault.public_key(), vault.get_name())
+                local localAddress = getLocalAddress(stats)
+                local name
+                if localAddress then
+                    name = addresses.getname(localAddress)
+                end
+                name = name or addresses.getname_by_key(stats.solarSystem)
+                if keyring.trust(hostKey, name) then
+                    addKeyToKeyringList(hostKey, name)
+                end
+            end)
+        end
+    end)
+    window:getObject('forget'):onClick(function()
+        local i = authKeysList:getItemIndex()
+        if i then
+            local item = authKeysList:getItem(i)
+            keyring.forget(item.args[1].key)
+            authKeysList:removeItem(i)
+        end
+    end)
+    passwordButton:onClick(function(button)
+        job.async(function()
+            if vault.is_encrypted() then
+                local password = modalMutexVault:with_lock(modal.passwd)
+                if not password then
+                    return
+                end
+                local ok, reason = vault.decrypt_key(password)
+                if not ok then
+                    modalMutexVault:with_lock(modal.alert, {"Failed to decrypt:", reason}, nil, "OK")
+                    return
+                end
+                synchPasswordButtonText(button)
+            else
+                local password = modalMutexVault:with_lock(modal.chpass)
+                if not password then
+                    return
+                end
+                vault.encrypt_key(password)
+                synchPasswordButtonText(button)
+            end
+        end)
+    end)
+end
+
 local addressesTypeMenubar
 local addressesList
 
@@ -174,77 +291,10 @@ basalt.setVariable("dial", function()
     end
 end)
 
-basalt.setVariable("setName", function(element)
-    local name = element:getValue()
-    job.async(function()
-        local newName = modal.text(name)
-        if newName then
-            element:setText(newName)
-            if newName == "" then
-                newName = nil
-            end
-            vault.set_name(newName)
-        end
-    end)
-end)
-
-local authKeysList
-
-local function addKeyToKeyringList(key, name)
-    local fingerprint = keys.fingerprint(key)
-    local text
-    if name then
-        text = name..' '..fingerprint
-    else
-        text = fingerprint
-    end
-    authKeysList:addItem(text, nil, nil, { key=key, name=name })
-end
-
-local function getLocalAddress(stats)
-    local localAddress = stats.localAddress
-    if localAddress then
-        return localAddress
-    end
-    local advanced = stats.advanced
-    if advanced then
-        return advanced.localAddress
-    end
-end
-
-basalt.setVariable("register", function()
-    local stats = statsProperty.value
-    if stats then
-        job.async(function()
-            local hostKey = stargate.register(vault.public_key(), vault.get_name())
-            local localAddress = getLocalAddress(stats)
-            local name
-            if localAddress then
-                name = addresses.getname(localAddress)
-            end
-            name = name or addresses.getname_by_key(stats.solarSystem)
-            if keyring.trust(hostKey, name) then
-                addKeyToKeyringList(hostKey, name)
-            end
-        end)
-    end
-end)
-
-basalt.setVariable("forget", function()
-    local i = authKeysList:getItemIndex()
-    if i then
-        local item = authKeysList:getItem(i)
-        keyring.forget(item.args[1].key)
-        authKeysList:removeItem(i)
-    end
-end)
-
 basalt.setVariable("openVault", function()
-    dom { "root", "vault" }:show()
-end)
-
-basalt.setVariable("exitVault", function()
-    dom { "root", "vault" }:hide()
+    job.async(function()
+        modalMutex:with_lock(modal.open, vaultSetup)
+    end)
 end)
 
 basalt.setVariable("engage", function(self)
@@ -275,41 +325,6 @@ basalt.setVariable("tell", function()
     end)
 end)
 
-local function synchPasswordButtonText()
-    local passwordButtonElement = dom { 'root', 'vault', 'password' }
-    local passwordButtonText
-    if vault.is_encrypted() then
-        passwordButtonText = "Del password"
-    else
-        passwordButtonText = "Set password"
-    end
-    passwordButtonElement:setText(passwordButtonText)
-end
-
-basalt.setVariable("setPassword", function(button)
-    job.async(function()
-        if vault.is_encrypted() then
-            local password = modal.passwd()
-            if not password then
-                return
-            end
-            local ok, reason = vault.decrypt_key(password)
-            if not ok then
-                modal.alert({"Failed to decrypt:", reason}, nil, "OK")
-                return
-            end
-            synchPasswordButtonText()
-        else
-            local password = modal.chpass()
-            if not password then
-                return
-            end
-            vault.encrypt_key(password)
-            synchPasswordButtonText()
-        end
-    end)
-end)
-
 job.run(function()
 
 local serverIdProperty = job.livedata.combine(function(stats)
@@ -325,16 +340,6 @@ basalt.createFrame()
     :addLayoutFromString(resources.load("psg.xml"))
 
 local mainFrame = dom { 'root', 'main' }
-
-authKeysList = dom { 'root', 'vault', 'list' }
-
-do -- setup vault
-    dom { 'root', 'vault', 'hostKey' }:setText(keys.fingerprint(vault.public_key()))
-    local authKeys = keyring.get_all()
-    for _, key in ipairs(authKeys) do
-        addKeyToKeyringList(key.key, key.name)
-    end
-end
 
 addressesTypeMenubar = dom { 'root', 'main', 'addressbook', 'addressType' }
 addressesList = dom { 'root', 'main', 'addressbook', 'list' }
@@ -552,7 +557,7 @@ job.livedata.subscribe(shouldAuthorizeProperty, function(shouldAuthorize)
                 irisMessage = "Iris is opened, trust?"
                 acceptText = false
             end
-            local doOpen = modal.alert(
+            local doOpen = modalMutex:with_lock(modal.alert,
                 {
                     "Dest: ".. keys.fingerprint(message.key);
                     verificationMessage;
@@ -564,7 +569,7 @@ job.livedata.subscribe(shouldAuthorizeProperty, function(shouldAuthorize)
                 local key = vault.private_key()
                 if not key then
                     while true do
-                        local password = modal.passwd()
+                        local password = modalMutex:with_lock(modal.passwd)
                         if not password then
                             return
                         end
@@ -572,21 +577,21 @@ job.livedata.subscribe(shouldAuthorizeProperty, function(shouldAuthorize)
                         if key then
                             break
                         end
-                        modal.alert({reason}, nil, "Retry")
+                        modalMutex:with_lock(modal.alert, {reason}, nil, "Retry")
                     end
                 end
                 local request = vault.make_auth_request(key, message.session)
                 ok, reason = otherside.auth(request)
                 if not ok then
-                    modal.alert({"NOT AUTHORIZED:", reason}, false, "OK")
+                    modalMutex:with_lock(modal.alert, {"NOT AUTHORIZED:", reason}, false, "OK")
                 else
-                    modal.alert({"Authorized!"}, false, "OK")
+                    modalMutex:with_lock(modal.alert, {"Authorized!"}, false, "OK")
                 end
             end
         elseif response:sub(-10) == "Terminated" then
             error("Terminated", 0)
         else
-            modal.alert({"No response!", "Iris state is unknown!"}, false, "OK")
+            modalMutex:with_lock(modal.alert, {"No response!", "Iris state is unknown!"}, false, "OK")
         end
     end
 end)
@@ -604,11 +609,15 @@ local messagesSemaphore = concurrent.semaphore(10)
 
 rpc.subscribe_network(modem, CHANNEL_EVENT, function(event, meta)
     local distance = meta.distance
+    if not distance then
+        -- ignore ender modem messages
+        return
+    end
     local type = event.type
     local data = event.data
     if type == 'discover' then
         local stats = statsProperty.value
-        if stats and stats.id ~= data.id and distance and distance > stats.distance then
+        if stats and stats.id ~= data.id and distance > stats.distance then
             -- prefer closest PSG server
             return
         end
@@ -622,7 +631,7 @@ rpc.subscribe_network(modem, CHANNEL_EVENT, function(event, meta)
         if _G.type(decoded) == 'table' and decoded.magic == 'rpc' then
             othersideResponses:send(decoded)
         else
-            messagesSemaphore:with_try_lock(modal.message, "Received Message", message)
+            messagesSemaphore:with_try_lock(modalMutex.with_lock, modalMutex, modal.message, "Received Message", message)
         end
     end
 end)
@@ -632,9 +641,7 @@ job.async(basalt.autoUpdate)
 do
     local fastElement = dom { 'root', 'main', 'addressbook', 'fast' }
     fastElement:setValue(fastDialModeInit)
-    synchPasswordButtonText()
     dom { 'root', 'version' }:setText(version)
-    dom { 'root', 'vault', 'hostName' }:setText(vault.get_name() or "")
 end
 
 end)

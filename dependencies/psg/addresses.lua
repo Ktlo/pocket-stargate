@@ -1,34 +1,8 @@
-local DEFAULT_LOCATION = "file:addresses.conf"
+local addressbook = require 'psg.addressbook'
 
 ---------------------------------------------
 
-settings.define("psg.addressesLocation", {
-    description = "Stargate addresses file location",
-    default = DEFAULT_LOCATION,
-    type = "string",
-})
-
-local location = settings.get("psg.addressesLocation", DEFAULT_LOCATION)
-
-local addressesTable
-
-do -- init
-    local addressesString
-
-    if location:sub(1, 5) == "file:" then
-        local file = assert(io.open(location:sub(6)))
-        addressesString = file:read("a")
-        file:close()
-    elseif location:sub(1, 5) == "http:" or location:sub(1, 6) == "https:" then
-        local file = http.get(location)
-        addressesString = file.readAll()
-        file.close()
-    else
-        error("unsupported location: "..location)
-    end
-
-    addressesTable = load("return "..addressesString, "addresses", 't', {})()
-end
+local addressesTable = addressbook.load()
 
 local addresses = {}
 

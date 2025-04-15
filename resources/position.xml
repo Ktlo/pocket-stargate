@@ -1,0 +1,18 @@
+<frame id="window">
+    <label x="2" y="2" text="Name"/>
+    <input id="name" x="8" y="2" width="parent.w - 8"/>
+    <label x="2" y="4" text="Solar system key"/>
+    <input id="key" x="2" y="5" width="parent.w - 2"/>
+    <label x="2" y="7" text="Extragalactic address"/>
+    <input id="extragalactic" x="2" y="8" width="parent.w - 2"/>
+    <label x="2" y="10" text="Interstellar addresses"/>
+    <list id="list" x="2" y="11" height="parent.h - 16" width="parent.w - 3"/>
+    <button x="parent.w - 1" y="11" width="1" height="1" text="" onClick="scrollUp"/>
+    <button x="parent.w - 1" y="parent.h - 6" width="1" height="1" text="" onClick="scrollDown"/>
+    <pane x="parent.w - 1" y="12" width="1" height="parent.h - 18" bg="black"/>
+    <button id="add" x="2" y="parent.h - 5" width="parent.w/3 - 2" height="1" bg="green" text="add"/>
+    <button id="edit" x="parent.w/3 + 1" y="parent.h - 5" width="parent.w/3 - 2" height="1" bg="yellow" text="edit"/>
+    <button id="delete" x="2*parent.w/3 + 1" y="parent.h - 5" width="parent.w/3 - 2" height="1" bg="red" text="delete"/>
+    <button id="submit" x="2" y="parent.h - 3" width="parent.w/2 - 2" bg="lime" text="Submit"/>
+    <button id="cancel" x="parent.w/2 + 1" y="parent.h - 3" width="parent.w/2 - 2" bg="pink" text="Cancel"/>
+</frame>

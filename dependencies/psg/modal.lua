@@ -5,28 +5,47 @@ local job = require 'ktlo.job'
 
 local library = {}
 
-local mutex = concurrent.mutex()
+local frames = nil
+
+local function get_frames()
+    if not frames then
+        local root = basalt.getActiveFrame()
+        local mainFrame = root:getObject("root") or root:getObject("main")
+        frames = {
+            [mainFrame] = {}
+        }
+    end
+    return frames
+end
 
 --- @param setup fun(frame, future: future)
 --- @return any
 local function open_modal_window(setup)
-    return mutex:with_lock(function()
-        local root = basalt.getActiveFrame()
-        local mainFrame = root:getObject("root") or root:getObject("main")
-        local future = concurrent.future()
-        mainFrame:disable()
-        local frame = root:addFrame()
-        frame:setMovable(true)
-        setup(frame, future)
-        local ok, result = pcall(future.get, future)
-        frame:remove()
-        mainFrame:enable()
-        if ok then
-            return result
-        else
-            error(result, 0)
-        end
-    end)
+    local root = basalt.getActiveFrame()
+    local windows = get_frames()
+    for frame, stack in pairs(windows) do
+        table.insert(stack, frame:isEnabled())
+        frame:disable()
+    end
+    local future = concurrent.future()
+    local frame = root:addFrame()
+    windows[frame] = {}
+    frame:setMovable(true)
+    setup(frame, future)
+    local ok, result = pcall(future.get, future)
+    frame:remove()
+    windows[frame] = nil
+    for otherFrame, stack in pairs(windows) do
+        local enabled = table.remove(stack, -1)
+        --if enabled then
+            otherFrame:enable()
+        --end
+    end
+    if ok then
+        return result
+    else
+        error(result, 0)
+    end
 end
 
 library.open = open_modal_window
@@ -169,7 +188,7 @@ function library.number(init)
     end)
 end
 
-local function setup_address(frame, future)
+local function setup_address(initAddress, frame, future)
     local window = setup_frame_width(frame, 27, 20, "address.xml")
     local symbols = window:getObject("symbols")
     local input = window:getObject("input")
@@ -251,12 +270,13 @@ local function setup_address(frame, future)
             update_address(newAddress)
         end
     end)
+    update_address(initAddress or {})
 end
 
 --- @return integer[]
 --- @async
-function library.address()
-    return open_modal_window(setup_address)
+function library.address(init)
+    return open_modal_window(function (...) setup_address(init, ...) end)
 end
 
 --- @param init? string

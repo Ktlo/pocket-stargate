@@ -1,3 +1,13 @@
+## v1.5.0 2025-04-15
+
+### Added
+- New program ASN. This is an address book editor.
+- It is possible to switch "Do you prefer manual dialing?" setting in SSG dynamically now.
+- Added new dialing mode for advanced crystal interface "Advanced Dial". It can be switched in SSG interface.
+
+### Fixed
+- PSG uses ender modem like a regular wireless modem now.
+
 ## v1.4.0 2025-03-17
 
 ### Changed

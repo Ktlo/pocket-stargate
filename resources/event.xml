@@ -1,0 +1,10 @@
+<frame id="window">
+    <pane width="parent.w" height="1" bg="blue"/>
+    <label x="parent.w/2-self.w/2" fg="white" text="Audit Event"/>
+    <pane x="2" y="3" width="parent.w - 2" height="parent.h - 7" bg="white"/>
+    <label id="content" x="2" y="3" width="parent.w - 2" height="parent.h - 7" text=""/>
+    <frame id="control" x="2" y="parent.h - 3" width="parent.w - 2" height="3">
+        <button id="print" x="2" text="Print" visible="false"/>
+        <button id="exit" x="parent.w - self.w" text="Back"/>
+    </frame>
+</frame>

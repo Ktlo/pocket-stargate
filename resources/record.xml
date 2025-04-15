@@ -1,0 +1,10 @@
+<frame id="window" bg="lightBlue">
+    <pane width="parent.w" bg="blue"/>
+    <label x="(parent.w - self.w)/2" fg="white" text="Address Form"/>
+    <label x="2" y="3" text="Name"/>
+    <input id="name" x="2" y="4" bg="cyan" width="parent.w - 2"/>
+    <label x="2" y="6" text="Address"/>
+    <input id="address" x="2" y="7" bg="cyan" width="parent.w - 2"/>
+    <button id="submit" x="2" y="parent.h - 3" width="parent.w/2 - 2" bg="lime" text="Submit"/>
+    <button id="cancel" x="parent.w/2 + 1" y="parent.h - 3" width="parent.w/2 - 2" bg="pink" text="Cancel"/>
+</frame>

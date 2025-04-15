@@ -67,7 +67,7 @@
             <label x="2" y="2" text="Auto Iris"/>
             <button x="19" y="2" width="1" height="1" text="?" onClick="helpAutoIris"/>
             <button id="autoIris" x="21" y="2" width="1" height="1" fg="black" bg="white" text="" onClick="setAutoIris"/>
-            <frame id="v1.3" x="2" y="4" visible="false">
+            <frame id="v1.3" x="2" y="4" height="7" visible="false">
                 <label text="Auto Close"/>
                 <button x="18" width="1" height="1" text="?" onClick="helpAutoClose"/>
                 <button x="20" width="5" height="1" text="SET" onClick="setAutoClose"/>
@@ -79,6 +79,14 @@
                 <label y="7" text="No Kawoosh"/>
                 <button x="18" y="7" width="1" height="1" text="?" onClick="helpNoKawoosh"/>
                 <button id="noKawoosh" x="20" y="7" width="1" height="1" fg="black" bg="white" text="" onClick="setNoKawoosh"/>
+            </frame>
+            <frame id="v1.5" x="2" y="12">
+                <label x="1" y="1" text="Manual Dial"/>
+                <button x="18" y="1" width="1" height="1" text="?" onClick="helpPreferManual"/>
+                <button id="preferManual" x="20" y="1" width="1" height="1" fg="black" bg="white" text="" onClick="setPreferManual"/>
+                <label x="1" y="3" text="Advanced Dial"/>
+                <button x="18" y="3" width="1" height="1" text="?" onClick="helpAdvancedDial"/>
+                <button id="advancedDial" x="20" y="3" width="1" height="1" fg="black" bg="white" text="" onClick="setAdvancedDial"/>
             </frame>
         </frame>
         <frame id="filter" y="2" height="parent.h - 1" visible="false">
@@ -107,16 +115,6 @@
                 <button id="none" x="8" width="7" height="1" text="None" bg="yellow" onClick="setFilterMode"/>
                 <button id="deny" x="15" width="7" height="1" text="Deny" bg="red" onClick="setFilterMode"/>
             </frame>
-        </frame>
-    </frame>
-    <frame id="event" visible="false">
-        <pane width="parent.w" height="1" bg="blue"/>
-        <label x="parent.w/2-self.w/2" fg="white" text="Audit Event"/>
-        <pane x="2" y="3" width="parent.w - 2" height="parent.h - 7" bg="white"/>
-        <label id="content" x="2" y="3" width="parent.w - 2" height="parent.h - 7" text=""/>
-        <frame id="control" x="2" y="parent.h - 3" width="parent.w - 2" height="3">
-            <button id="print" x="2" text="Print" onClick="printAuditEvent" visible="false"/>
-            <button x="parent.w - self.w" text="Back" onClick="auditEventBack"/>
         </frame>
     </frame>
 </frame>

@@ -98,6 +98,14 @@ shell.run "monitor <side> ssg
 
 You can run this program on the same computer where PSG is. You can also run them in parallel.
 
+### Adress book editor (ASN)
+
+This program provides a GUI to edit an address book file. If your address book is located on your device it is recommended to install ASN next to PSG.
+
+```lua
+pastebin run R793wEeB
+```
+
 ## Features
 
 ### Addressbook
