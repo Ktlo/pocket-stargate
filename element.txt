@@ -1,0 +1,43 @@
+element.id
+element.classes
+element.width
+element.height
+element.enabled
+element.visible
+element.selected
+element.clicked
+element.fill(x, y, dx, dy)
+element.write(text, x, y)
+element.clear()
+element.get_color(kind, key)
+where kind:
+    text
+    back
+where key:
+    base
+    normal
+    selected
+    disabled
+    clicked
+    default
+
+create_element(id, classes, handler)
+
+element_public:
+    wait_click()
+
+
+handler(element, event, ...)
+
+events:
+    init
+    show
+    hide
+    enable
+    disable
+    resize, was_width, was_height, width, height
+    down, x, y, button
+    up, x, y, button
+    scroll, x, y, direction
+    drag, x, y, button
+
