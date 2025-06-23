@@ -1,3 +1,8 @@
+## v1.5.1 2025-06-23
+
+### Fixed
+- ASN and PSG didn't work on CC: Tweaked for Minecraft 1.19.x
+
 ## v1.5.0 2025-04-15
 
 ### Added

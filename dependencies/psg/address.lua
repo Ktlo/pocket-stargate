@@ -68,7 +68,7 @@ local function address_create(...)
 end
 
 local function address_pattern(n)
-    return "^-"..string_rep("(%d+)", n, "-").."-$"
+    return "^-"..string_rep("(%d+)-", n).."$"
 end
 
 local S6_ADDRESS = address_pattern(6)
