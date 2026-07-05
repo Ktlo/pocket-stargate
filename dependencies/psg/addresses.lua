@@ -1,14 +1,53 @@
-local addressbook = require 'psg.addressbook'
+local setmetatable, ipairs, pairs = setmetatable, ipairs, pairs
 
 ---------------------------------------------
 
-local addressesTable = addressbook.load()
+local addresses_index = {}
 
-local addresses = {}
+local addresses_meta = {
+    __index = addresses_index;
+}
 
-function addresses.interstellar(galaxies, solarSystem)
+local function addresses_tostring(address)
+    return table.concat(address, '-')
+end
+
+local addresses = {
+    tostring = addresses_tostring
+}
+
+local function galaxy_key(galaxy, address)
+    return galaxy..":"..addresses_tostring(address)
+end
+
+function addresses.create(addressbook)
+    local nameByAddress = {}
+
+    for _, record in ipairs(addressbook.identity or {}) do
+        nameByAddress[addresses_tostring(record.address)] = record.name
+    end
+
+    for _, record in ipairs(addressbook.position or {}) do
+        local extragalactic = record.extragalactic
+        if extragalactic then
+            nameByAddress[addresses_tostring(extragalactic)] = record.name
+        end
+        for galaxy, address in pairs(record.interstellar or {}) do
+            local key = galaxy_key(galaxy, address)
+            nameByAddress[key] = record.name
+        end
+    end
+
+    local obj = {
+        addressbook = addressbook;
+        nameByAddress = nameByAddress;
+    }
+    return setmetatable(obj, addresses_meta)
+end
+
+function addresses_index:interstellar(galaxies, solarSystem)
     local result = {}
-    for _, solar in ipairs(addressesTable.position or {}) do
+    for _, solar in ipairs(self.addressbook.position or {}) do
         if solar.key ~= solarSystem then
             if solar.interstellar then
                 for _, galaxy in ipairs(galaxies) do
@@ -28,9 +67,9 @@ function addresses.interstellar(galaxies, solarSystem)
     return result
 end
 
-function addresses.extragalactic(galaxies)
+function addresses_index:extragalactic(galaxies)
     local result = {}
-    for _, solar in ipairs(addressesTable.position or {}) do
+    for _, solar in ipairs(self.addressbook.position or {}) do
         if solar.extragalactic then
             local notSkip = true
             for _, galaxy in ipairs(galaxies) do
@@ -64,9 +103,9 @@ local function tableEquals(a, b)
     end
 end
 
-function addresses.direct(localAddress)
+function addresses_index:direct(localAddress)
     local result = {}
-    for _, record in ipairs(addressesTable.identity or {}) do
+    for _, record in ipairs(self.addressbook.identity or {}) do
         if not localAddress or not tableEquals(record.address, localAddress) then
             table.insert(result, record)
         end
@@ -74,35 +113,8 @@ function addresses.direct(localAddress)
     return result
 end
 
-function addresses.tostring(address)
-    return table.concat(address, '-')
-end
-
-local nameByAddress = {}
-
-for _, record in ipairs(addressesTable.identity or {}) do
-    nameByAddress[addresses.tostring(record.address)] = record.name
-end
-
-local function galaxy_key(galaxy, address)
-    return galaxy..":"..addresses.tostring(address)
-end
-
-for _, record in ipairs(addressesTable.position or {}) do
-    local extragalactic = record.extragalactic
-    if extragalactic then
-        nameByAddress[addresses.tostring(extragalactic)] = record.name
-    end
-    for galaxy, address in pairs(record.interstellar or {}) do
-        local key = galaxy_key(galaxy, address)
-        nameByAddress[key] = record.name
-    end
-end
-
-addresses.h = nameByAddress
-
-function addresses.getname_by_key(key)
-    for _, solar in ipairs(addressesTable.position or {}) do
+function addresses_index:getname_by_key(key)
+    for _, solar in ipairs(self.addressbook.position or {}) do
         local name = solar.name
         if solar.key == key and name then
             return name
@@ -111,13 +123,13 @@ function addresses.getname_by_key(key)
     return nil
 end
 
-function addresses.getname(address, galaxies)
+function addresses_index:getname(address, galaxies)
     local n = #address
     if n == 6 then
         if galaxies then
             for _, galaxy in ipairs(galaxies) do
                 local key = galaxy_key(galaxy, address)
-                local name = nameByAddress[key]
+                local name = self.nameByAddress[key]
                 if name then
                     return name
                 end
@@ -125,7 +137,7 @@ function addresses.getname(address, galaxies)
         end
         return nil
     else
-        return nameByAddress[addresses.tostring(address)]
+        return self.nameByAddress[addresses.tostring(address)]
     end
 end
 

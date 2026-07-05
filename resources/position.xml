@@ -7,8 +7,8 @@
     <input id="extragalactic" x="2" y="8" width="parent.w - 2"/>
     <label x="2" y="10" text="Interstellar addresses"/>
     <list id="list" x="2" y="11" height="parent.h - 16" width="parent.w - 3"/>
-    <button x="parent.w - 1" y="11" width="1" height="1" text="" onClick="scrollUp"/>
-    <button x="parent.w - 1" y="parent.h - 6" width="1" height="1" text="" onClick="scrollDown"/>
+    <button x="parent.w - 1" y="11" width="1" height="1" text="" onClick="parentScrollUp"/>
+    <button x="parent.w - 1" y="parent.h - 6" width="1" height="1" text="" onClick="parentScrollDown"/>
     <pane x="parent.w - 1" y="12" width="1" height="parent.h - 18" bg="black"/>
     <button id="add" x="2" y="parent.h - 5" width="parent.w/3 - 2" height="1" bg="green" text="add"/>
     <button id="edit" x="parent.w/3 + 1" y="parent.h - 5" width="parent.w/3 - 2" height="1" bg="yellow" text="edit"/>

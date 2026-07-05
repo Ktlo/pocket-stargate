@@ -1,5 +1,0 @@
-alert.xml
-message.xml
-asn.xml
-position.xml
-record.xml

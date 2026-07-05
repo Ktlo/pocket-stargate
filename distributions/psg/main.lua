@@ -12,6 +12,7 @@ local theme = {
 
 local basalt = require 'basalt'
 local addresses = require 'psg.addresses'
+local addressbook = require 'psg.addressbook'
 local job = require 'ktlo.job'
 local rpc = require 'ktlo.rpc'
 local keyring = require 'psg.keyring'
@@ -59,6 +60,8 @@ end
 local otherside = rpc.client(othersideExchanger, TIMEOUT)
 
 basalt.setVariable("addressLength", 0)
+
+local addressesState = concurrent.property(addresses.create(addressbook.load()))
 
 local statsProperty = concurrent.property(nil)
 
@@ -136,9 +139,9 @@ local function vaultSetup(frame, future)
                 local localAddress = getLocalAddress(stats)
                 local name
                 if localAddress then
-                    name = addresses.getname(localAddress)
+                    name = addressesState.value:getname(localAddress)
                 end
-                name = name or addresses.getname_by_key(stats.solarSystem)
+                name = name or addressesState.value:getname_by_key(stats.solarSystem)
                 if keyring.trust(hostKey, name) then
                     addKeyToKeyringList(hostKey, name)
                 end
@@ -178,6 +181,333 @@ local function vaultSetup(frame, future)
     end)
 end
 
+local function scrollList(list, increment)
+    local offset = list:getOffset()
+    if increment < 0 and offset <= 0 then
+        return
+    end
+    if increment > 0 and offset > #(list:getAll()) - list:getHeight() then
+        return
+    end
+    list:setOffset(offset + increment)
+end
+
+local function scroll(button, increment)
+    local list = button:getParent():getObject("list")
+    scrollList(list, increment)
+end
+
+local function scrollParentList(button, increment)
+    local list = button:getParent():getObject("list")
+    scrollList(list, increment)
+end
+
+local function selectFrom(bar, ...)
+    local index = bar:getItemIndex()
+    for i=1, select('#', ...) do
+        local tab = select(i, ...)
+        if tab then
+            if i == index then
+                tab:show()
+            else
+                tab:hide()
+            end
+        end
+    end
+    local tab = select(index, ...)
+    return tab
+end
+
+local function asnSetup(frame, future)
+    local address = require 'psg.address'
+    frame:addLayoutFromString(resources.load("asn.xml"))
+    local window = frame:getObject('window')
+    window:getObject('exit'):onClick(function()
+        future:complete(nil)
+    end)
+    local positionList = window:getObject('position')
+    local identityList = window:getObject('identity')
+    local activeList = positionList
+    window:getObject('selectList'):onChange(function(bar)
+        activeList = selectFrom(
+            bar,
+            positionList,
+            identityList
+        )
+    end)
+    local modalMutex = concurrent.mutex()
+    local modalMutexPosition = concurrent.mutex()
+
+    local function getInputOrNil(input)
+        local value = input:getValue()
+        if value == "" then
+            return nil
+        else
+            return value
+        end
+    end
+    local function addressForm(mutex, record, kind)
+        record = record or {}
+        return modal.open(function(frame, future)
+            local width = math.min(30, frame:getParent():getSize() - 2)
+            frame:setSize(width, 12)
+            frame:setPosition("(parent.w - self.w)/2 + 1", "(parent.h - self.h)/2")
+            frame:addLayoutFromString(resources.load "record.xml")
+            local window = frame:getObject("window")
+            local nameInput = window:getObject("name")
+            nameInput:setValue(record.name or "")
+            local addressInput = window:getObject("address")
+            addressInput:setValue(record.address and tostring(record.address) or "")
+
+            window:getObject("submit"):onClick(function()
+                local ok, value = pcall(address.parse, addressInput:getValue())
+                if not ok then
+                    job.async(function()
+                        mutex:with_lock(modal.alert, "Invalid address:\n"..value, nil, "OK")
+                    end)
+                    return
+                end
+                if value.kind ~= kind then
+                    job.async(function()
+                        mutex:with_lock(
+                            modal.alert,
+                            "Invalid address:\nexpected "..kind.." ("..address.sizeof(kind).." symbols), but got "
+                            ..value.kind.." ("..value.n.." symbols)", nil, "OK"
+                        )
+                    end)
+                    return
+                end
+                future:complete {
+                    name = nameInput:getValue();
+                    address = value;
+                }
+            end)
+            window:getObject("cancel"):onClick(function()
+                future:complete(nil)
+            end)
+        end)
+    end
+
+    local function positionForm(position)
+        position = position or { interstellar = {} }
+        return modalMutex:with_lock(modal.open, function(frame, future)
+            local recordMutex = concurrent.mutex()
+            frame:addLayoutFromString(resources.load "position.xml")
+            local window = frame:getObject("window")
+            local nameInput = window:getObject("name")
+            nameInput:setValue(position.name or "")
+            local keyInput = window:getObject("key")
+            keyInput:setValue(position.key or "")
+            local extragalacticInput = window:getObject("extragalactic")
+            extragalacticInput:setValue(position.extragalactic and tostring(position.extragalactic) or "")
+            local interstellarList = window:getObject("list")
+            local function interstellarItem(galaxy, addr)
+                return galaxy.." "..tostring(addr), nil, nil, { galaxy = galaxy, address = addr }
+            end
+            local function addInterstellar(galaxy, addr)
+                interstellarList:addItem(interstellarItem(galaxy, addr))
+            end
+            for galaxy, addr in pairs(position.interstellar) do
+                addInterstellar(galaxy, addr)
+            end
+            window:getObject("add"):onClick(function()
+                job.async(function()
+                    local record = modalMutexPosition:with_lock(addressForm, recordMutex, nil, 'interstellar')
+                    if record then
+                        addInterstellar(record.name, record.address)
+                    end
+                end)
+            end)
+            window:getObject("edit"):onClick(function()
+                local index = interstellarList:getItemIndex()
+                if not index or index <= 0 then
+                    return
+                end
+                local item = interstellarList:getItem(index)
+                local record = item.args[1]
+                job.async(function()
+                    local newRecord = modalMutexPosition:with_lock(
+                        addressForm, recordMutex, {name = record.galaxy, address = record.address}, 'interstellar'
+                    )
+                    if newRecord then
+                        interstellarList:editItem(index, interstellarItem(newRecord.name, newRecord.address))
+                    end
+                end)
+            end)
+            window:getObject("delete"):onClick(function()
+                local index = interstellarList:getItemIndex()
+                if not index or index <= 0 then
+                    return
+                end
+                job.async(function()
+                    local isSure = modalMutexPosition:with_lock(modal.alert, "Are you sure?", "Yes", "No")
+                    if isSure then
+                        interstellarList:removeItem(index)
+                    end
+                end)
+            end)
+
+            window:getObject("submit"):onClick(function()
+                local extragalactic = getInputOrNil(extragalacticInput)
+                if extragalactic then
+                    local ok, value = pcall(address.parse, extragalactic)
+                    if not ok then
+                        job.async(function()
+                            modalMutexPosition:with_lock(
+                                modal.alert,
+                                "Invalid extragalactic address:\n"..value, nil, "OK"
+                            )
+                        end)
+                        return
+                    end
+                    if value.kind ~= 'extragalactic' then
+                        job.async(function()
+                            modalMutexPosition:with_lock(
+                                modal.alert,
+                                "Invalid extragalactic address:\nexpected extragalactic address (7 symbols), but got "
+                                ..value.kind.." ("..value.n.." symbols)", nil, "OK"
+                            )
+                        end)
+                        return
+                    end
+                    extragalactic = value
+                end
+                local interstellar = {}
+                local count = interstellarList:getItemCount()
+                for i=1, count do
+                    local item = interstellarList:getItem(i)
+                    local record = item.args[1]
+                    interstellar[record.galaxy] = record.address
+                end
+                future:complete {
+                    name = getInputOrNil(nameInput);
+                    key = getInputOrNil(keyInput);
+                    interstellar = interstellar;
+                    extragalactic = extragalactic;
+                }
+            end)
+            window:getObject("cancel"):onClick(function()
+                future:complete(nil)
+            end)
+        end)
+    end
+    local function listItem(record)
+        return record.name or record.key or "???", nil, nil, record
+    end
+    window:getObject('addRecord'):onClick(function()
+        job.async(function()
+            local record
+            if activeList == positionList then
+                record = positionForm(nil)
+            else
+                record = modalMutex:with_lock(addressForm, modalMutexPosition, nil, 'systemwide')
+            end
+            if record then
+                activeList:addItem(listItem(record))
+            end
+        end)
+    end)
+    window:getObject('editRecord'):onClick(function()
+        local index = activeList:getItemIndex()
+        if not index or index <= 0 then
+            return
+        end
+        job.async(function()
+            local record = activeList:getItem(index).args[1]
+            if activeList == positionList then
+                record = positionForm(record)
+            else
+                record = modalMutex:with_lock(addressForm, modalMutexPosition, record, 'systemwide')
+            end
+            if record then
+                activeList:editItem(index, listItem(record))
+            end
+        end)
+    end)
+    window:getObject('deleteRecord'):onClick(function()
+        local index = activeList:getItemIndex()
+        if not index or index <= 0 then
+            return
+        end
+        job.async(function()
+            local isSure = modalMutex:with_lock(modal.alert, "Are you sure?", "Yes", "No")
+            if isSure then
+                activeList:removeItem(index)
+            end
+        end)
+    end)
+    local function editListItem(list, index, item)
+        list:editItem(index, item.text, item.bgCol, item.fgCol, table.unpack(item.args))
+    end
+    local function swapListItems(list, a, b)
+        local aItem = list:getItem(a)
+        local bItem = list:getItem(b)
+        editListItem(list, a, bItem)
+        editListItem(list, b, aItem)
+    end
+    window:getObject('moveUp'):onClick(function()
+        local index = activeList:getItemIndex()
+        if not index or index <= 0 then
+            return
+        end
+        if index == 1 then
+            return
+        end
+        swapListItems(activeList, index - 1, index)
+        activeList:selectItem(index - 1)
+    end)
+    window:getObject('moveDown'):onClick(function()
+        local index = activeList:getItemIndex()
+        if not index or index <= 0 then
+            return
+        end
+        if index == activeList:getItemCount() then
+            return
+        end
+        swapListItems(activeList, index, index + 1)
+        activeList:selectItem(index + 1)
+    end)
+    window:getObject('up'):onClick(function()
+        scrollList(activeList, -1)
+    end)
+    window:getObject('down'):onClick(function()
+        scrollList(activeList, 1)
+    end)
+    local function transformList(list)
+        local result = {}
+        for i, item in ipairs(list:getAll()) do
+            result[i] = item.args[1]
+        end
+        return result
+    end
+    window:getObject('save'):onClick(function()
+        job.async(function()
+            local ok, err = pcall(function()
+                local result = {
+                    position = transformList(positionList);
+                    identity = transformList(identityList);
+                }
+                addressbook.save(result)
+                return result
+            end)
+            if not ok then
+                modalMutex:with_lock(modal.alert, "Saving failed:\n"..err, nil, "OK")
+            else
+                future:complete(err)
+            end
+        end)
+    end)
+    do
+        local addressesVal = addressesState.value.addressbook
+        for _, record in ipairs(addressesVal.position) do
+            positionList:addItem(listItem(record))
+        end
+        for _, record in ipairs(addressesVal.identity) do
+            identityList:addItem(listItem(record))
+        end
+    end
+end
+
 local addressesTypeMenubar
 local addressesList
 
@@ -196,12 +526,13 @@ local function loadAddresses()
     if stats then
         local index = addressesTypeMenubar:getItemIndex()
         local newAddresses
+        local addressesVal = addressesState.value
         if index == 1 then -- interstellar
-            newAddresses = addresses.interstellar(stats.galaxies, stats.solarSystem)
+            newAddresses = addressesVal:interstellar(stats.galaxies, stats.solarSystem)
         elseif index == 2 then -- extragalactic
-            newAddresses = addresses.extragalactic(stats.galaxies)
+            newAddresses = addressesVal:extragalactic(stats.galaxies)
         else -- direct
-            newAddresses = addresses.direct((stats.advanced or {}).localAddress)
+            newAddresses = addressesVal:direct((stats.advanced or {}).localAddress)
         end
         currentAddresses = newAddresses
         addressesList:clear()
@@ -248,24 +579,20 @@ basalt.setVariable("selectSubFrame", function(self)
     end
 end)
 
-local function scroll(button, increment)
-    local list = button:getParent():getObject("list")
-    local offset = list:getOffset()
-    if increment < 0 and offset <= 0 then
-        return
-    end
-    if increment > 0 and offset > #(list:getAll()) - list:getHeight() then
-        return
-    end
-    list:setOffset(offset + increment)
-end
-
 basalt.setVariable("scrollUp", function(button)
     scroll(button, -1)
 end)
 
 basalt.setVariable("scrollDown", function(button)
     scroll(button, 1)
+end)
+
+basalt.setVariable("parentScrollUp", function(button)
+    scrollParentList(button, -1)
+end)
+
+basalt.setVariable("parentScrollDown", function(button)
+    scrollParentList(button, 1)
 end)
 
 basalt.setVariable("onFast", function(element)
@@ -294,6 +621,15 @@ end)
 basalt.setVariable("openVault", function()
     job.async(function()
         modalMutex:with_lock(modal.open, vaultSetup)
+    end)
+end)
+
+basalt.setVariable("editAddressbook", function()
+    job.async(function()
+        local newAddresses = modalMutex:with_lock(modal.open, asnSetup)
+        if newAddresses then
+            addressesState:set(addresses.create(newAddresses))
+        end
     end)
 end)
 
@@ -380,7 +716,7 @@ local function updateDialAddress(stats)
     if not next(dialedAddress) then
         dialNameLabel:setText("")
     elseif stats.basic.isWormholeOpen or stats.basic.isDialingOut then
-        dialNameLabel:setText(addresses.getname(dialedAddress, stats.galaxies) or "")
+        dialNameLabel:setText(addressesState.value:getname(dialedAddress, stats.galaxies) or "")
     end
 end
 
@@ -415,7 +751,7 @@ local function updateConnectedAddresds(stats)
     if not next(address) then
         connectedNameLabel:setText("")
     elseif stats.basic.isWormholeOpen or stats.basic.isDialingOut then
-        connectedNameLabel:setText(addresses.getname(address, stats.galaxies) or "")
+        connectedNameLabel:setText(addressesState.value:getname(address, stats.galaxies) or "")
     end
     connectedAddressLabel:setText(addresses.tostring(address))
 end
@@ -525,6 +861,10 @@ end, statsProperty)
 job.livedata.subscribe(serverIdProperty, function(id)
     loadAddresses()
     stargate._state.server = id
+end)
+
+job.livedata.subscribe(addressesState, function()
+    loadAddresses()
 end)
 
 local lastJob = job.async(function()end)
@@ -642,6 +982,10 @@ do
     local fastElement = dom { 'root', 'main', 'addressbook', 'fast' }
     fastElement:setValue(fastDialModeInit)
     dom { 'root', 'version' }:setText(version)
+    if addressbook.resolve_location() == 'file' then
+        (dom { 'root', 'editAddrsA' }):show();
+        (dom { 'root', 'main', 'addressbook', 'editAddrsB' }):show()
+    end
 end
 
 end)

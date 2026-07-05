@@ -10,6 +10,9 @@ local rpc = require 'ktlo.rpc'
 local job = require 'ktlo.job'
 local shared = require 'ktlo.shared'
 local addresses = require 'psg.addresses'
+local addressbook = require 'psg.addressbook'
+
+addresses = addresses.create(addressbook.load())
 
 --------------------------------
 
@@ -54,7 +57,7 @@ local galaxiesProperty = job.livedata.combine(function(stats)
     return stats.galaxies
 end, statsProperty)
 local solarSystemNameProperty = job.livedata.combine(function(solarSystem)
-    return addresses.getname_by_key(solarSystem)
+    return addresses:getname_by_key(solarSystem)
 end, solarSystemProperty)
 job.livedata.subscribe(solarSystemNameProperty, function(name)
     incoming.setStationName(name)
@@ -100,19 +103,19 @@ local gateBucket = shared.bucket('gate')
 --------------------------------
 
 local function getAddress(name)
-    local interstellar = addresses.interstellar(galaxiesProperty.value, solarSystemProperty.value)
+    local interstellar = addresses:interstellar(galaxiesProperty.value, solarSystemProperty.value)
     for _, record in ipairs(interstellar) do
         if record.name == name then
             return record.address
         end
     end
-    local extragalactic = addresses.extragalactic(galaxiesProperty.value)
+    local extragalactic = addresses:extragalactic(galaxiesProperty.value)
     for _, record in ipairs(extragalactic) do
         if record.name == name then
             return record.address
         end
     end
-    local direct = addresses.direct(nil)
+    local direct = addresses:direct(nil)
     for _, record in ipairs(direct) do
         if record.name == name then
             return record.address

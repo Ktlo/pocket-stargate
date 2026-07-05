@@ -1,3 +1,11 @@
+## v1.6.0 2026-07-05
+
+### Changed
+- ASN now merged into PSG. You can modify your local address book easier.
+
+### Removed
+- ASN program discontinued.
+
 ## v1.5.1 2025-06-23
 
 ### Fixed

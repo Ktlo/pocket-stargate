@@ -41,8 +41,7 @@ If you change block configuration on the server (for example, you replaced cryst
     pastebin run t0Wt1dgm
     ```
 3. Follow the installation steps.
-4. Modify the *addresses.conf* file after the installation procedure is finished.
-5. Run `psg` command in the pocket computer.
+4. Run `psg` command in the pocket computer.
 
 ### Client (PSG) (on a regular computer with an advanced monitor)
 
@@ -55,8 +54,7 @@ If you change block configuration on the server (for example, you replaced cryst
     pastebin run t0Wt1dgm
     ```
 6. Follow the installation steps.
-7. Modify the *addresses.conf* file after the installation procedure is finished.
-8. Run this commands:
+7. Run this commands:
     ```
     monitor scale <side> 0.5
     monitor <side> psg
@@ -97,14 +95,6 @@ shell.run "monitor <side> ssg
 ```
 
 You can run this program on the same computer where PSG is. You can also run them in parallel.
-
-### Adress book editor (ASN)
-
-This program provides a GUI to edit an address book file. If your address book is located on your device it is recommended to install ASN next to PSG.
-
-```lua
-pastebin run R793wEeB
-```
 
 ## Features
 

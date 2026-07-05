@@ -5,3 +5,6 @@ passwd.xml
 chpass.xml
 text.xml
 vault.xml
+asn.xml
+position.xml
+record.xml

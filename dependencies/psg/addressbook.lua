@@ -83,6 +83,8 @@ local function transformAddressbook(addresses)
     }
 end
 
+library.resolve_location = resolve_location
+
 --- @async
 --- @return psg.addressbook?, string?
 function library.load()
