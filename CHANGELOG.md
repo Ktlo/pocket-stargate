@@ -1,3 +1,8 @@
+## v1.6.1 2026-07-05
+
+### Fixed
+- PSG is shrinked a bit to meet the size restrictions for pastebin.
+
 ## v1.6.0 2026-07-05
 
 ### Changed
