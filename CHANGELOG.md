@@ -1,7 +1,8 @@
-## v1.6.1 2026-07-05
+## v1.6.1 2026-07-06
 
 ### Fixed
-- PSG is shrinked a bit to meet the size restrictions for pastebin.
+- All distributions are shrinked a bit to meet the size restrictions for pastebin.
+- Wrong tab name in SSG terminal when a basic or crystal (not advanced) interface is used in respective SGS.
 
 ## v1.6.0 2026-07-05
 

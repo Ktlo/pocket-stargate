@@ -17,22 +17,22 @@ local wiredModemName = peripheral.getName(wiredModem)
 local wirelessModemName = peripheral.getName(wirelessModem)
 
 while true do
-    local event, side, channel, replyChannel, message = os.pullEventRaw('modem_message')
-    if event == 'terminate' then
-        break
-    end
-    if side == wiredModemName then
-        wirelessModem.transmit(channel, replyChannel, message)
-        if channel ~= CHANNEL_EVENT then
-            print("wired", channel, replyChannel, message)
-            wiredModem.close(channel)
-        end
-    end
-    if side == wirelessModemName then
-        print("wireless", channel, replyChannel, message)
-        wiredModem.open(replyChannel)
-        wiredModem.transmit(channel, replyChannel, message)
-    end
+	local event, side, channel, replyChannel, message = os.pullEventRaw('modem_message')
+	if event == 'terminate' then
+		break
+	end
+	if side == wiredModemName then
+		wirelessModem.transmit(channel, replyChannel, message)
+		if channel ~= CHANNEL_EVENT then
+			print("wired", channel, replyChannel, message)
+			wiredModem.close(channel)
+		end
+	end
+	if side == wirelessModemName then
+		print("wireless", channel, replyChannel, message)
+		wiredModem.open(replyChannel)
+		wiredModem.transmit(channel, replyChannel, message)
+	end
 end
 
 wiredModem.close(CHANNEL_EVENT)

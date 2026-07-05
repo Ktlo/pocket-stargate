@@ -2,8 +2,8 @@ print("Installing SSG...")
 
 print("Checking peripherals...")
 if not peripheral.find("modem", function(_, modem) return not modem.isWireless() end) then
-    print("Wired modem not found!")
-    typeY()
+	print("Wired modem not found!")
+	typeY()
 end
 print("Peripherals OK")
 

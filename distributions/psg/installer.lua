@@ -1,8 +1,8 @@
 print("Installing PSG...")
 print("Checking peripherals...")
 if not peripheral.find("modem") then
-    print("Modem not found!")
-    typeY()
+	print("Modem not found!")
+	typeY()
 end
 print("Peripherals OK")
 
@@ -16,7 +16,7 @@ settings.save()
 
 print("Unpacking files...")
 if not fs.exists("addresses.conf") and DEFAULT_LOCATION == addressesLocation then
-    saveExtra("addresses.conf")
+	saveExtra("addresses.conf")
 end
 saveProgram()
 

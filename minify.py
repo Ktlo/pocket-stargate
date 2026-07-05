@@ -12,10 +12,12 @@ args_parser = argparse.ArgumentParser(
 
 args_parser.add_argument('variant')
 args_parser.add_argument('resource')
+args_parser.add_argument('-s', '--strip', action='store_true')
 args = args_parser.parse_args()
 
 variant = args.variant
 resource = args.resource
+strip = args.strip
 
 def safemkdir(dir):
     try:
@@ -50,7 +52,17 @@ match variant:
 out_file = f"{out_dir}/{resource}.lua"
 os.makedirs(os.path.dirname(out_file), exist_ok=True)
 
-with open(out_file, 'wb') as output:
-    with open(in_file) as input:
-        process = Popen(["luamin -c"], stdout=output, stderr=STDOUT, stdin=input, shell=True)
-        process.wait()
+if strip:
+    def read_file(file):
+        with open(file) as input:
+            return input.read()
+    code = read_file(in_file)
+    code = re.sub(r'--\[\[.*?\]\]', '', code, flags=re.DOTALL)
+    code = re.sub(r'--.*$', '', code, flags=re.MULTILINE)
+    with open(out_file, 'w') as output:
+        output.write(code)
+else:
+    with open(out_file, 'wb') as output:
+        with open(in_file) as input:
+            process = Popen(["luamin -c"], stdout=output, stderr=STDOUT, stdin=input, shell=True)
+            process.wait()

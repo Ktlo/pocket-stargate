@@ -21,6 +21,8 @@ jobs:
         run: npm install -g luamin
       - name: Minify some dependencies
         run: cat minify.txt | while read line; do python minify.py dependency $line; done
+      - name: Strip some dependencies
+        run: cat strip.txt | while read line; do python minify.py dependency -s $line; done
       - name: Build SGS
         run: python packer.py sgs
       - name: Build PSG
