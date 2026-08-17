@@ -1,3 +1,15 @@
+## v1.7.0 2026-08-17
+
+### Changes
+- "Dial" button in "Addressbook" will show an error message with details if address is not dialable. #6 #4
+- Reworked networks configuration interface in SSG to accommodate network changes in Stargate Journey.
+
+### Fixed
+- Point of origin now trimmed out from dialed address. Previously Stargate Journey didn't return this symbol via `getDialedAddress` call.
+- Outgoing connection event is determined by both *stargate_stargate_engaged* and *stargate_outgoing_wormhole* events now. This should fix "No kawoosh" protocol and some other state inconsistencies.
+- Renamed "Edit" button to "Edit Addressbook" on screen that shows when there is no stargate nearby. #8
+- Delayed cryptography initialization in SGS even farther. This is necessary for "auto iris" and "no kawoosh" protocols.
+
 ## v1.6.1 2026-07-06
 
 ### Fixed

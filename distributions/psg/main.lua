@@ -611,7 +611,10 @@ basalt.setVariable("dial", function()
 				local index = addressesList:getItemIndex()
 				if index > 0 then
 					local dialAddress = currentAddresses[index].address
-					stargate.dial(dialAddress, not fastDialMode)
+					local dialed, err = stargate.dial(dialAddress, not fastDialMode)
+					if not dialed then
+						modalMutex:with_lock(modal.alert, err, nil, "OK")
+					end
 				end
 			end
 		end)

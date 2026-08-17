@@ -194,11 +194,28 @@ local isDialingProperty = job.livedata.combine(function(addressBuffer)
 	return #addressBuffer > 0
 end, addressBufferProperty)
 local engagedChevronsProperty = concurrent.property(stargate.getChevronsEngaged())
-local dialedAddressProperty = concurrent.property(callOrDefault(stargate.getDialedAddress, {}))
+local function removePoO(address)
+	if address[#address] == 0 then
+		address[#address] = nil
+	end
+	return address
+end
+local dialedAddressProperty = concurrent.property(removePoO(callOrDefault(stargate.getDialedAddress, {})))
 local energyTargetProperty = concurrent.property(stargate.getEnergyTarget())
 local connectedAddressProperty = concurrent.property(callOrDefault(stargate.getConnectedAddress, {}))
-local isNetworkRestrictedProperty = concurrent.property(callOrDefault(stargate.isNetworkRestricted, false))
-local networkProperty = concurrent.property(callOrDefault(stargate.getNetwork, false))
+local netRestrictModeProperty = concurrent.property(callOrDefault(stargate.isNetworkRestricted, 0))
+local networksProperty
+do
+	local networks
+	if stargate.getNetworks then
+		networks = stargate.getNetworks()
+	elseif stargate.getNetwork then
+		networks = { stargate.getNetwork() }
+	else
+		networks = {}
+	end
+	networksProperty = concurrent.property(networks)
+end
 local filterTypeProperty = concurrent.property(callOrDefault(stargate.getFilterType, 0))
 local function pollNewValues()
 	local feedbackCode, feedbackName = stargate.getRecentFeedback();
@@ -215,14 +232,17 @@ end
 local pollValuesProperty = concurrent.property(pollNewValues())
 
 -- no kawoosh
-job.livedata.subscribe(isStargateConnectedProperty, function(isConnected)
-	if isConnected and noKawooshProperty.value then
+local preventKawooshProperty = job.livedata.combine(function(isStargateConnected, noKawoosh, pollValues)
+	return isStargateConnected and noKawoosh and not pollValues.isWormholeOpen
+end, isStargateConnectedProperty, noKawooshProperty, pollValuesProperty)
+
+job.livedata.subscribe(preventKawooshProperty, function(value)
+	if value then
 		callOrDefault(stargate.closeIris)
-	end
-end)
-job.livedata.subscribe(pollValuesProperty, function(values)
-	if noKawooshProperty.value and values.isWormholeOpen and (isStargateDialingOutProperty.value or (not autoIrisProperty.value)) then
-		callOrDefault(stargate.openIris)
+	else
+		if isStargateDialingOutProperty.value or (not autoIrisProperty.value) then
+			callOrDefault(stargate.openIris)
+		end
 	end
 end)
 
@@ -345,9 +365,11 @@ job.async(function()
 end)
 job.async(function()
 	while true do
-		os.pullEvent('stargate_outgoing_wormhole')
-		isStargateConnectedProperty:set(true)
-		isStargateDialingOutProperty:set(true)
+		local event = os.pullEvent()
+		if event == 'stargate_outgoing_wormhole' or event == 'stargate_stargate_engaged' then
+			isStargateConnectedProperty:set(true)
+			isStargateDialingOutProperty:set(true)
+		end
 	end
 end)
 local autoCloseJob = emptyJob
@@ -388,7 +410,7 @@ end
 local otherside = {}
 
 function otherside.info(nonce)
-	return spkey.auth_request(nonce, { isIrisClosed = stargate.getIrisProgress and stargate.getIrisProgress() ~= 0 })
+	return spkey.auth_request(nonce, { isIrisClosed = stargate.getIrisProgress and stargate.getIrisProgress() ~= 0 or false })
 end
 
 local function broadcast(modemFilter, channel, message)
@@ -590,15 +612,18 @@ function handlers.engage(symbol)
 end
 
 function handlers.dial(address, slow)
-	if not address then return false end
+	if not address then return false, "No address specified" end
 	if isDialingProperty.value then
-		return
+		return false, "Currently dialing other address"
 	end
 	for i=1, #address do
 		local symbol = math.floor(address[i])
 		address[i] = symbol
-		if symbol < 0 or symbol > maxSymbol then
-			return false
+		if symbol < 0 then
+			return false, "Illegal symbol: "..symbol
+		end
+		if symbol > maxSymbol then
+			return false, "The address is not dialable on this stargate"
 		end
 	end
 	slowDialingEnabled = slow
@@ -613,6 +638,7 @@ function handlers.dial(address, slow)
 			setChevronConfiguration({1,2,3,4,5,6,7,8})
 		end
 	end
+	return true
 end
 
 function handlers.disconnect()
@@ -677,8 +703,10 @@ function security.getState()
 	if tier >= 3 then
 		result.advanced = {
 			network = {
-				id = networkProperty.value;
-				isRestricted = isNetworkRestrictedProperty.value;
+				id = networksProperty.value[0] or -1;
+				isRestricted = netRestrictModeProperty.value > 0;
+				ids = networksProperty.value;
+				mode = netRestrictModeProperty.value;
 			};
 			filter = {
 				allowlist = filter.allowlist_getall();
@@ -702,20 +730,56 @@ job.livedata.subscribe(energyTargetProperty, function(value)
 	broadcastSetting("energy_target", value)
 end)
 
+-- deprecated
 function security.setNetwork(network)
-	stargate.setNetwork(network)
-	networkProperty:set(stargate.getNetwork())
+	if stargate.getNetworks then
+		local networks = stargate.getNetworks()
+		for _, net in ipairs(networks) do
+			stargate.removeNetwork(net)
+		end
+		stargate.addNetwork(network)
+		networksProperty:set(stargate.getNetworks())
+	elseif stargate.getNetwork then
+		stargate.setNetwork(network)
+		networksProperty:set({stargate.getNetwork()})
+	end
 end
-job.livedata.subscribe(networkProperty, function(value)
-	broadcastSetting("network", value)
+job.livedata.subscribe(networksProperty, function(value)
+	broadcastSetting("network", value[0] or -1)
 end)
 
-function security.restrictNetwork(value)
-	stargate.restrictNetwork(value)
-	isNetworkRestrictedProperty:set(value)
+function security.addNetwork(network)
+	local result = stargate.addNetwork(network)
+	networksProperty:set(stargate.getNetworks())
+	return result
 end
-job.livedata.subscribe(isNetworkRestrictedProperty, function(value)
-	broadcastSetting("is_network_restricted", value)
+function security.delNetwork(network)
+	local result = stargate.removeNetwork(network)
+	networksProperty:set(stargate.getNetworks())
+	return result
+end
+function security.syncNetworks()
+	networksProperty:set(stargate.getNetworks())
+end
+job.livedata.subscribe(networksProperty, function(value)
+	broadcastSetting("networks", value)
+end)
+
+-- deprecated
+function security.restrictNetwork(value)
+	stargate.restrictNetwork(value and 1 or 0)
+	netRestrictModeProperty:set(stargate.isNetworkRestricted())
+end
+job.livedata.subscribe(netRestrictModeProperty, function(value)
+	broadcastSetting("is_network_restricted", value > 0)
+end)
+
+function security.restrictNetwork2(value)
+	stargate.restrictNetwork(value)
+	netRestrictModeProperty:set(stargate.isNetworkRestricted())
+end
+job.livedata.subscribe(netRestrictModeProperty, function(value)
+	broadcastSetting("network_mode", value)
 end)
 
 function security.setFilterMode(mode)
@@ -1048,9 +1112,12 @@ if stargate.getIris then
 	end)
 end
 
-if not random.isInit() then
-	random.initWithTiming()
-end
+job.async(function()
+	coroutine.yield()
+	if not random.isInit() then
+		random.initWithTiming()
+	end
+end)
 
 settings.save()
 

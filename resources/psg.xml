@@ -1,7 +1,7 @@
 <frame id="root">
     <label x="(parent.w - self.w)/2" y="parent.h/2" text="No stargate found"/>
     <button x="parent.w - 6" y="parent.h - 3" width="6" text="Keys" onClick="openVault"/>
-    <button id="editAddrsA" visible="false" x="2" y="parent.h - 4" width="6" height="1" bg="orange" text="Edit" onClick="editAddressbook"/>
+    <button id="editAddrsA" visible="false" x="(parent.w - self.w)/2" y="parent.h - 6" width="18" height="1" bg="orange" text="Edit Addressbook" onClick="editAddressbook"/>
     <label id="version" x="(parent.w - self.w)/2" y="parent.h" fg="gray"/>
     <frame id="main" visible="false">
         <menubar onChange="selectFrame" width="parent.w">

@@ -79,15 +79,8 @@ local function auditEventDialog(event)
 	end)
 end
 
-basalt.setVariable("selectFrame", function(self)
-	local index = self:getItemIndex()
-	local tabs = {
-		dom { 'root', 'main', 'keys' },
-		dom { 'root', 'main', 'audit' },
-		dom { 'root', 'main', 'settings' },
-		dom { 'root', 'main', 'protocols' },
-		dom { 'root', 'main', 'filter' },
-	}
+local function selectTab(tabs, item)
+	local index = item:getItemIndex()
 	for i, tab in ipairs(tabs) do
 		if i == index then
 			tab:show()
@@ -95,6 +88,25 @@ basalt.setVariable("selectFrame", function(self)
 			tab:hide()
 		end
 	end
+end
+
+basalt.setVariable("selectFrame", function(self)
+	local tabs = {
+		dom { 'root', 'main', 'keys' },
+		dom { 'root', 'main', 'audit' },
+		dom { 'root', 'main', 'settings' },
+		dom { 'root', 'main', 'protocols' },
+		dom { 'root', 'main', 'advanced' },
+	}
+	selectTab(tabs, self)
+end)
+
+basalt.setVariable("selectAdvancedFrame", function(self)
+	local tabs = {
+		dom { 'root', 'main', 'advanced', 'filter' },
+		dom { 'root', 'main', 'advanced', 'networks' },
+	}
+	selectTab(tabs, self)
 end)
 
 local selectedFilterListProperty = concurrent.property(1)
@@ -204,7 +216,7 @@ basalt.setVariable("setFilterMode", function(element)
 	end)
 end)
 
-local energyTargetElement, networkIdElement
+local energyTargetElement, networkIdsElement
 
 local autoCloseProperty = concurrent.property(0)
 local irisProtectProperty = concurrent.property(0)
@@ -233,16 +245,48 @@ basalt.setVariable("setNetworkId", function()
 	end)
 end)
 
+basalt.setVariable("addNet", function()
+	job.async(function()
+		local result = modalMutex:with_lock(modal.number, 0)
+		client.addNetwork(result)
+	end)
+end)
+basalt.setVariable("delNet", function()
+	local index = networkIdsElement:getItemIndex()
+	if index then
+		local item = networkIdsElement:getItem(index)
+		job.async(function()
+			client.delNetwork(item.args[1])
+		end)
+	end
+end)
+basalt.setVariable("syncNet", function()
+	job.async(function()
+		client.syncNetworks()
+	end)
+end)
+
+basalt.setVariable("netPermit", function()
+	job.async(function()
+		client.restrictNetwork2(-1)
+	end)
+end)
+
+basalt.setVariable("netDhd", function()
+	job.async(function()
+		client.restrictNetwork2(0)
+	end)
+end)
+
+basalt.setVariable("netRestrict", function()
+	job.async(function()
+		client.restrictNetwork2(1)
+	end)
+end)
+
 local function checkboxButtonState(element)
 	return element:getValue() == "*"
 end
-
-basalt.setVariable("setNetRestricted", function(element)
-	local value = checkboxButtonState(element)
-	job.async(function()
-		client.restrictNetwork(not value)
-	end)
-end)
 
 basalt.setVariable("setAutoIris", function(element)
 	local value = checkboxButtonState(element)
@@ -444,8 +488,8 @@ basalt.createFrame()
 	:addLayoutFromString(resources.load("ssg.xml"))
 
 job.livedata.subscribe(selectedFilterListProperty, function(index)
-	local allowlist = dom { 'root', 'main', 'filter', 'allowlist' }
-	local denylist = dom { 'root', 'main', 'filter', 'denylist' }
+	local allowlist = dom { 'root', 'main', 'advanced', 'filter', 'allowlist' }
+	local denylist = dom { 'root', 'main', 'advanced', 'filter', 'denylist' }
 	if index == 1 then
 		allowlist:show()
 		denylist:hide()
@@ -462,8 +506,7 @@ end
 keysList = dom { 'root', 'main', 'keys', 'list' }
 
 energyTargetElement = dom { 'root', 'main', 'settings', 'energyTarget' }
-networkIdElement = dom { 'root', 'main', 'settings', 'advanced', 'networkId' }
-local isNetRestrictedElement = dom { 'root', 'main', 'settings', 'advanced', 'isNetRestricted' }
+networkIdsElement = dom { 'root', 'main', 'advanced', 'networks', 'list' }
 local irisElement = dom { 'root', 'main', 'settings', 'iris', 'iris' }
 local irisDurabilityBarElement = dom { 'root', 'main', 'settings', 'iris', 'irisDurabilityBar' }
 local irisDurabilityElement = dom { 'root', 'main', 'settings', 'iris', 'irisDurability' }
@@ -474,12 +517,16 @@ local irisProtectElement = dom { 'root', 'main', 'protocols', 'v1.3', 'irisProte
 local noKawooshElement = dom { 'root', 'main', 'protocols', 'v1.3', 'noKawoosh' }
 local preferManualElement = dom { 'root', 'main', 'protocols', 'v1.5', 'preferManual' }
 local advancedDialElement = dom { 'root', 'main', 'protocols', 'v1.5', 'advancedDial' }
-allowlistElement = dom { 'root', 'main', 'filter', 'allowlist', 'list' }
-denylistElement = dom { 'root', 'main', 'filter', 'denylist', 'list' }
-local filterModeElement = dom { 'root', 'main', 'filter', 'mode' }
+allowlistElement = dom { 'root', 'main', 'advanced', 'filter', 'allowlist', 'list' }
+denylistElement = dom { 'root', 'main', 'advanced', 'filter', 'denylist', 'list' }
+local filterModeElement = dom { 'root', 'main', 'advanced', 'filter', 'mode' }
 local allowModeElement = filterModeElement:getObject('allow')
 local noneModeElement = filterModeElement:getObject('none')
 local denyModeElement = filterModeElement:getObject('deny')
+local networksFrameElement = dom { 'root', 'main', 'advanced', 'networks' }
+local permitModeElement = networksFrameElement:getObject('permit')
+local dhdModeElement = networksFrameElement:getObject('dhd')
+local restrictModeElement = networksFrameElement:getObject('restrict')
 
 local function addFilterItem(list, address)
 	list:addItem("-"..table.concat(address, "-").."-", nil, nil, address)
@@ -510,6 +557,22 @@ local function updateFilterModeElement(mode)
 		setDeselected(allowModeElement, colors.green)
 		setSelected(noneModeElement)
 		setDeselected(denyModeElement, colors.red)
+	end
+end
+
+local function updateNetworkModeElement(mode)
+	if mode < 0 then
+		setSelected(permitModeElement)
+		setDeselected(dhdModeElement, colors.yellow)
+		setDeselected(restrictModeElement, colors.red)
+	elseif mode > 0 then
+		setDeselected(permitModeElement, colors.green)
+		setDeselected(dhdModeElement, colors.yellow)
+		setSelected(restrictModeElement)
+	else
+		setDeselected(permitModeElement, colors.green)
+		setSelected(dhdModeElement)
+		setDeselected(restrictModeElement, colors.red)
 	end
 end
 
@@ -613,6 +676,13 @@ local function fetchAuditEvents(direction, new, pageNumber)
 	end
 end
 
+local function setNetworks(networks)
+	networkIdsElement:clear()
+	for _, network in ipairs(networks) do
+		networkIdsElement:addItem(tostring(network), nil, nil, network)
+	end
+end
+
 job.livedata.subscribe(shouldFetchAuditProperty, function(value)
 	if value then
 		initializedProperty:wait_until(function(value)
@@ -694,8 +764,14 @@ job.async(function()
 	updateIrisDurability(state.settings.irisDurability, state.settings.irisMaxDurability)
 	local advanced = state.advanced
 	if advanced then
-		networkIdElement:setText(tostring(advanced.network.id))
-		setButtonCheckbox(isNetRestrictedElement, advanced.network.isRestricted)
+		local network = advanced.network
+		local networks = network.ids
+		if networks then
+			setNetworks(networks)
+			updateNetworkModeElement(network.mode)
+		else
+			dom { 'root', 'main', 'advanced', 'selector' }:hide()
+		end
 		local filter = advanced.filter
 		for _, address in ipairs(filter.allowlist) do
 			addFilterItem(allowlistElement, address)
@@ -705,7 +781,6 @@ job.async(function()
 		end
 		updateFilterModeElement(filter.mode)
 	else
-		dom { 'root', 'main', 'settings', 'advanced' }:hide()
 		dom { 'root', 'main', 'selector' }:removeItem(5)
 	end
 	local protocols = state.protocols
@@ -796,10 +871,10 @@ rpc.subscribe_network(modem, SECURITY_EVENT, function(event)
 			updateFilterModeElement(value)
 		elseif setting == 'energy_target' then
 			setEnergyTargetText(value)
-		elseif setting == 'network' then
-			networkIdElement:setText(tostring(value))
-		elseif setting == 'is_network_restricted' then
-			setButtonCheckbox(isNetRestrictedElement, value)
+		elseif setting == 'networks' then
+			setNetworks(value)
+		elseif setting == 'network_mode' then
+			updateNetworkModeElement(value)
 		elseif setting == 'auto_iris' then
 			setButtonCheckbox(autoIrisElement, value)
 		elseif setting == 'auto_close' then
